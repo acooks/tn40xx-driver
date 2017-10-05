@@ -1,0 +1,31 @@
+
+Driver compilation and installation
+===================================
+
+To get the make options type make help
+  make help
+
+tn40xx driver Makefile. Available targets:
+  all              - build the driver
+  clean            - Clean the driver
+  help             - Print this help message
+  install          - Install driver to system directory
+                     usually, it is /lib/modules/VER/kernel/drivers/net
+  default          - all
+
+
+Notes:
+      - Supported kernels: 2.6.32 - 4.x
+
+      - make install should be run by a privileged user after running make:
+	sudo make install
+
+      - in SLES11, set 'allow_unsupported_modules 1'  in /etc/modprobe.d/unsupported-modules
+      - in SLES12, set 'allow_unsupported_modules 1'  in /etc/modprobe.d/10-unsupported-modules.conf
+
+      - Ethtool support for 5GBASE-T and 2.5GBASE-T options:
+	speed 5000 - 5Gbps
+	speed 2500 - 2.5Gbps
+
+      - If a new ramfs is not rebuilt after make install and previous driver is loaded after reboot:
+	sudo update-initramfs -u -k `uname -r`
