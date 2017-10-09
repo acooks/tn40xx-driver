@@ -1,4 +1,4 @@
- # Vendor drops
+# Vendor drops
 
 This is a list of changes between vendor drops.
 

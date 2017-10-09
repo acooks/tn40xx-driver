@@ -1,4 +1,4 @@
-# Vendor drop cleanups
+# Vendor code drop cleanups
 
 The intention of the `cleanup/` git branches is to transform the vendor code into a better format that addresses the problems with the code style used by the vendor.
 
@@ -18,21 +18,4 @@ The transformation must:
 - make progress towards an 'upstreamable' driver
 
 
-The process is as follows:
-- Use scripts/Lindent (from the kernel source repo) to fix code formatting:
-```
-KSRC=/path/to/linux
-${KSRC}/scripts/Lindent *.{c,h}
-```
-
-- Use 'sed' to translate C++ comments into C comments:
-```
-sed -i 's|//\(.*\)|/* \1 */|g' *.{c,h}
-```
-Unfortunately there are nested comments, so this transform operation is
-neither idempotent, not complete.
-
-- Trim trailing whitespace:
-```
-sed -i 's|\s*$||g' *.{c,h}
-```
+To apply the cleanup changes, run: `cleanup.sh`
