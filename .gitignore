@@ -1,2 +1,7 @@
+tn40xx.ko
+tn40xx.mod.c
+Module.symvers
 *~
 *.o
+*.o.cmd
+*.swp
