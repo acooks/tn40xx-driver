@@ -21,6 +21,10 @@ done
 sed -i 's|/\*\s*---*---*\s*\*/||g' *.c
 
 
+# remove comments after the closing function brace, like } /* foo() */
+sed -i 's|\s*}\s*/\*.*\*/|}|g' *.c
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
