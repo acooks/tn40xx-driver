@@ -1,7 +1,5 @@
 #include "tn40.h"
 
-/*------------------------------------------------------------------------------------------------- */
-
 int QT2025_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
@@ -23,8 +21,6 @@ int QT2025_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* QT2025_get_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 int QT2025_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
@@ -35,7 +31,6 @@ int QT2025_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* QT2025_set_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef ETHTOOL_GLINKSETTINGS
 
 int QT2025_get_link_ksettings(struct net_device *netdev,
@@ -62,7 +57,7 @@ int QT2025_get_link_ksettings(struct net_device *netdev,
 }				/* QT2025_get_link_ksettings() */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
+
 #ifdef ETHTOOL_SLINKSETTINGS
 
 int QT2025_set_link_ksettings(struct net_device *netdev,
@@ -77,7 +72,6 @@ int QT2025_set_link_ksettings(struct net_device *netdev,
 }				/* QT2025_set_link_ksettings() */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
 
 __init void QT2025_register_settings(struct bdx_priv *priv)
 {

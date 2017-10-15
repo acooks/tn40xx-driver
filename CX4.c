@@ -6,7 +6,6 @@ void CX4_register_settings(struct bdx_priv *priv);
 int CX4_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy);
 u32 CX4_link_changed(struct bdx_priv *priv);
 void CX4_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op);
-/*------------------------------------------------------------------------------------------------- */
 
 int CX4_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy)
 {
@@ -14,8 +13,6 @@ int CX4_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy)
 	return 0;
 
 }				/* CX4_mdio_reset */
-
-/*------------------------------------------------------------------------------------------------- */
 
 u32 CX4_link_changed(struct bdx_priv * priv)
 {
@@ -42,8 +39,6 @@ u32 CX4_link_changed(struct bdx_priv * priv)
 
 }				/* CX4_link_changed() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void CX4_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 {
 	switch (op) {
@@ -67,8 +62,6 @@ void CX4_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 
 }				/* CX4_leds() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 __init enum PHY_TYPE CX4_register(struct bdx_priv *priv)
 {
 	priv->isr_mask =
@@ -82,5 +75,3 @@ __init enum PHY_TYPE CX4_register(struct bdx_priv *priv)
 	return PHY_TYPE_CX4;
 
 }				/* CX4_init() */
-
-/*------------------------------------------------------------------------------------------------- */
