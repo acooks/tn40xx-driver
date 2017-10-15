@@ -29,7 +29,7 @@ int AQR105_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 #endif
 	return 0;
 
-}				/* AQR105_get_settings() */
+}
 
 int AQR105_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
@@ -88,7 +88,7 @@ int AQR105_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 	return rVal;
 
-}				/* AQR105_set_settings() */
+}
 
 #ifdef ETHTOOL_GLINKSETTINGS
 #define AQR105_ALL_SPEEDS	(__ETHTOOL_LINK_MODE_LAST+1)
@@ -109,7 +109,7 @@ static void AQR105_set_link_mode(unsigned long *bits, u32 speed)
 		__set_bit(speed, bits);
 	}
 
-}				/* AQR105_set_link_mode() */
+}
 
 int AQR105_get_link_ksettings(struct net_device *netdev,
 			      struct ethtool_link_ksettings *cmd)
@@ -143,7 +143,7 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 
 	RET(0);
 
-}				/* AQR105_get_link_ksettings() */
+}
 
 #endif
 
@@ -197,7 +197,7 @@ int AQR105_set_link_ksettings(struct net_device *netdev,
 
 	RET(0);
 
-}				/* AQR105_set_link_ksettings() */
+}
 
 #endif
 
@@ -213,4 +213,4 @@ __init void AQR105_register_settings(struct bdx_priv *priv)
 #endif
 	priv->autoneg = AUTONEG_ENABLE;
 
-}				/* MV88X3120_register_settings() */
+}

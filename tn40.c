@@ -239,7 +239,7 @@ void dbg_printFifo(struct fifo *m, char *fName)
 	DBG("WPTR 0x%x = 0x%x RPTR 0x%x = 0x%x\n",
 	    m->reg_WPTR, m->wptr, m->reg_RPTR, m->rptr);
 
-}				/* dbg_printFifo() */
+}
 
 void dbg_printRegs(struct bdx_priv *priv, char *msg)
 {
@@ -256,14 +256,14 @@ void dbg_printRegs(struct bdx_priv *priv, char *msg)
 
 	EXIT;
 
-}				/* dbg_printRegs() */
+}
 
 void dbg_printPBL(struct pbl *pbl)
 {
 	DBG("pbl: len %u pa_lo 0x%x pa_hi 0x%x\n", pbl->len, pbl->pa_lo,
 	    pbl->pa_hi);
 
-}				/* dbg_printPBL() */
+}
 
 #else
 #define dbg_printRegs(priv, msg)
@@ -292,7 +292,7 @@ u32 tbReadReg(struct bdx_priv *priv, u32 reg)
 
 	return rVal;
 
-}				/* tbReadReg() */
+}
 
 #endif
 
@@ -342,7 +342,7 @@ u32 bdx_mdio_get(struct bdx_priv * priv)
 	ERR("MDIO busy!\n");
 	return 0xFFFFFFFF;
 
-}				/* bdx_mdio_get() */
+}
 
 /* bdx_mdio_read - read a 16bit word through the MDIO interface
  * @priv
@@ -380,7 +380,7 @@ int bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
 	/*  ERR("MDIO_READ: MDIO_DATA =0x%x \n", (tmp_reg & 0xFFFF)); */
 	return (int)(tmp_reg & 0xFFFF);
 
-}				/* bdx_mdio_read() */
+}
 
 /* bdx_mdio_write - writes a 16bit word through the MDIO interface
  * @priv
@@ -417,7 +417,7 @@ int bdx_mdio_write(struct bdx_priv *priv, int device, int port, u16 addr,
 	}
 	return 0;
 
-}				/* bdx_mdio_write() */
+}
 
 void setMDIOSpeed(struct bdx_priv *priv, u32 speed)
 {
@@ -434,7 +434,7 @@ void setMDIOSpeed(struct bdx_priv *priv, u32 speed)
 	writel(mdio_cfg, regs + regMDIO_CMD_STAT);
 	msleep(100);
 
-}				/* setMDIOSpeed() */
+}
 
 int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 {
@@ -462,7 +462,7 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 
 	return rVal;
 
-}				/* bdx_mdio_look_for_phy() */
+}
 
 static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 				      void __iomem * regs, int *port_t,
@@ -551,7 +551,7 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 		*phy_t = CX4_register(priv);
 		break;
 
-	}			/* switch(i) */
+	}
 	setMDIOSpeed(priv, priv->phy_ops.mdio_speed);
 	MSG("PHY detected on port %u ID=%X - %s\n", *port_t, i, s);
 
@@ -821,7 +821,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 
 	return speed;
 
-}				/* bdx_speed_set() */
+}
 
 void bdx_speed_changed(struct bdx_priv *priv, u32 speed)
 {
@@ -835,7 +835,7 @@ void bdx_speed_changed(struct bdx_priv *priv, u32 speed)
 		    priv->link_speed);
 	}
 
-}				/* bdx_speed_changed() */
+}
 
 /*
  * bdx_link_changed - Notify the OS about hw link state.
@@ -876,7 +876,7 @@ static void bdx_link_changed(struct bdx_priv *priv)
 		}
 	}
 
-}				/* bdx_link_changed() */
+}
 
 static inline void bdx_isr_extra(struct bdx_priv *priv, u32 isr)
 {
@@ -1261,7 +1261,7 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 	/*  WRITE_REG(priv, regCTRLST,  regCTRLST_BASE | regCTRLST_RX_ENA | regCTRLST_TX_ENA); */
 	WRITE_REG(priv, regCTRLST, 0xA13);	/*0x93//0x13 */
 
-}				/* bdx_CX4_hw_start */
+}
 
 /*
 static  void bdx_setAffinity(u32 irq)
@@ -1334,7 +1334,7 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 	RET(0);
 
-}				/* bdx_hw_start() */
+}
 
 static void bdx_hw_stop(struct bdx_priv *priv)
 {
@@ -1350,7 +1350,7 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 
 	RET();
 
-}				/* bdx_hw_stop() */
+}
 
 static int bdx_hw_reset_direct(void __iomem * regs)
 {
@@ -1376,7 +1376,7 @@ static int bdx_hw_reset_direct(void __iomem * regs)
 
 	RET(1);			/* failure */
 
-}				/* bdx_hw_reset_direct() */
+}
 
 static int bdx_hw_reset(struct bdx_priv *priv)
 {
@@ -1405,7 +1405,7 @@ static int bdx_hw_reset(struct bdx_priv *priv)
 
 	return 1;		/* Failure */
 
-}				/* bdx_hw_reset() */
+}
 
 static int bdx_sw_reset(struct bdx_priv *priv)
 {
@@ -1463,7 +1463,7 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 
 	RET(0);
 
-}				/* bdx_sw_reset() */
+}
 
 /* bdx_reset - Perform the right type of reset depending on hw type */
 static int bdx_reset(struct bdx_priv *priv)
@@ -1472,7 +1472,7 @@ static int bdx_reset(struct bdx_priv *priv)
 	/*  RET((priv->pdev->device == 0x4010) ? bdx_hw_reset(priv) : bdx_sw_reset(priv)); */
 	RET(bdx_hw_reset(priv));
 
-}				/* bdx_reset() */
+}
 
 static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 {
@@ -1509,7 +1509,7 @@ static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 	}
 	return rc;
 
-}				/* bdx_start() */
+}
 
 static void bdx_stop(struct bdx_priv *priv)
 {
@@ -1521,7 +1521,7 @@ static void bdx_stop(struct bdx_priv *priv)
 		bdx_rx_free(priv);
 		bdx_tx_free(priv);
 	}
-}				/* bdx_stop() */
+}
 
 /**
  * bdx_close - Disables a network interface
@@ -1546,7 +1546,7 @@ static int bdx_close(struct net_device *ndev)
 	priv->state &= ~BDX_STATE_OPEN;
 	RET(0);
 
-}				/* bdx_close() */
+}
 
 /**
  * bdx_open - This API is called when a network interface is made active.
@@ -1581,7 +1581,7 @@ static int bdx_open(struct net_device *ndev)
 
 	RET(rc);
 
-}				/* bdx_open() */
+}
 
 #ifdef __BIG_ENDIAN
 static void __init bdx_firmware_endianess(void)
@@ -2449,7 +2449,7 @@ static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 
 	return ((u16) (sum));
 
-}				/* tcpCheckSum() */
+}
 
 #if defined(USE_PAGED_BUFFERS)
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
@@ -2519,7 +2519,7 @@ static int bdx_rx_error(char *pkt, u32 rxd_err, u16 len)
 
 	return rVal;
 
-}				/* bdx_rx_error() */
+}
 
 /* bdx_rx_receive - Receives full packet from RXD fifo and pass them to the OS.
  *
@@ -2866,7 +2866,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 
 	RET(done);
 
-}				/* bdx_rx_receive() */
+}
 
 /*************************************************************************
  * Debug / Temporary Code                       *
@@ -3060,14 +3060,14 @@ inline void bdx_setPbl(struct pbl *pbl, dma_addr_t dmaAddr, int len)
 	pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(dmaAddr));
 	dbg_printPBL(pbl);
 
-}				/* bdx_setPbl() */
+}
 
 static inline void bdx_setTxdb(struct txdb *db, dma_addr_t dmaAddr, int len)
 {
 	db->wptr->len = len;
 	db->wptr->addr.dma = dmaAddr;
 
-}				/* bdx_setTxdb() */
+}
 
 static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 				 struct txd_desc *txdd, int *nr_frags,
@@ -3138,7 +3138,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 
 	/*if (copyBytes) return -1; else return 0; */
 
-}				/* bdx_tx_map_skb() */
+}
 
 /*
  * init_txd_sizes - Pre-calculate the sizes of descriptors for skbs up to 16
@@ -3379,7 +3379,7 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 #endif
 	RET(rVal);
 
-}				/* bdx_tx_transmit() */
+}
 
 /* bdx_tx_cleanup - Clean the TXF fifo, run in the context of IRQ.
  *
@@ -3463,7 +3463,7 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 #endif
 	EXIT;
 
-}				/* bdx_tx_cleanup() */
+}
 
 /* bdx_tx_free_skbs - Free all skbs from TXD fifo.
  *
@@ -3943,7 +3943,7 @@ err_pci:
 
 	RET(err);
 
-}				/* bdx_probe() */
+}
 
 /****************** Ethtool interface *********************/
 /* Get strings for tests */
@@ -4035,7 +4035,7 @@ static int bdx_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 	return priv->phy_ops.set_settings(netdev, ecmd);
 
-}				/* bdx_set_settings() */
+}
 
 #ifdef ETHTOOL_GLINKSETTINGS
 
@@ -4056,7 +4056,7 @@ int bdx_get_link_ksettings(struct net_device *netdev,
 
 	return priv->phy_ops.get_link_ksettings(netdev, cmd);
 
-}				/* bdx_get_link_ksettings() */
+}
 
 #endif
 
@@ -4069,7 +4069,7 @@ int bdx_set_link_ksettings(struct net_device *netdev,
 
 	return priv->phy_ops.set_link_ksettings(netdev, cmd);
 
-}				/* bdx_set_link_ksettings() */
+}
 
 #endif
 
@@ -4453,7 +4453,7 @@ static int bdx_get_eee(struct net_device *netdev, struct ethtool_eee *edata)
 
 	return err;
 
-}				/* bdx_get_eee() */
+}
 #endif
 #ifdef ETHTOOL_SEEE
 
@@ -4477,7 +4477,7 @@ static int bdx_set_eee(struct net_device *netdev, struct ethtool_eee *edata)
 	}
 	return err;
 
-}				/* bdx_set_eee() */
+}
 #endif
 #endif
 
@@ -4555,7 +4555,7 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 
 	SET_ETHTOOL_OPS(netdev, &bdx_ethtool_ops);
 
-}				/* bdx_ethtool_ops() */
+}
 
 /**
  * bdx_remove - Device removal routine.
@@ -4600,7 +4600,7 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 
 	RET();
 
-}				/* bdx_remove() */
+}
 
 #ifdef _DRIVER_RESUME_
 
@@ -4621,7 +4621,7 @@ static int bdx_suspend(struct device *dev)
 	DBG("pci_prepare_to_sleep = %d\n", err);
 	return 0;
 
-}				/* bdx_suspend() */
+}
 
 static int bdx_resume(struct device *dev)
 {
@@ -4655,7 +4655,7 @@ static int bdx_resume(struct device *dev)
 
 	return rc;
 
-}				/* bdx_resume() */
+}
 #endif
 
 #ifdef _DRIVER_RESUME_
@@ -4687,7 +4687,7 @@ int bdx_no_hotplug(struct pci_dev *pdev, const struct pci_device_id *ent)
 	ERR("rescan/hotplug is *NOT* supported!, please use rmmod/insmod instead\n");
 	RET(-1);
 
-}				/* bdx_no_hotplug */
+}
 
 #endif
 
@@ -4726,7 +4726,7 @@ static void __init bdx_scan_pci(void)
 	spin_unlock(&g_lock);
 	MSG("detected %d cards, %d loaded\n", nDevices, nLoaded);
 
-}				/* bdx_scan_pci() */
+}
 
 static void bdx_print_phys(void)
 {
@@ -4764,7 +4764,7 @@ static void bdx_print_phys(void)
 	    bdx_pci_driver.suspend != NULL ? "in driver suspend" : "");
 /*		bdx_pci_driver.driver.pm != NULL ? "in driver suspend" : ""); */
 
-}				/* bdx_print_phys() */
+}
 
 /*
  * print_driver_id - Print the driver build parameters the .
