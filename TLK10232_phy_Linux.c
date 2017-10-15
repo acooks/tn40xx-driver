@@ -20,7 +20,7 @@ int TLK10232_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 	return 0;
 
-}				/* TLK10232_get_settings() */
+}
 
 int TLK10232_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
@@ -30,7 +30,7 @@ int TLK10232_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 	return -EPERM;
 
-}				/* TLK10232_set_settings() */
+}
 
 #ifdef ETHTOOL_GLINKSETTINGS
 
@@ -55,7 +55,7 @@ int TLK10232_get_link_ksettings(struct net_device *netdev,
 
 	return 0;
 
-}				/* TLK10232_get_link_ksettings() */
+}
 
 #endif
 
@@ -70,7 +70,7 @@ int TLK10232_set_link_ksettings(struct net_device *netdev,
 
 	return -EPERM;
 
-}				/* TLK10232_set_link_ksettings() */
+}
 
 #endif
 
@@ -85,4 +85,4 @@ __init void TLK10232_register_settings(struct bdx_priv *priv)
 	priv->phy_ops.set_link_ksettings = TLK10232_set_link_ksettings;
 #endif
 
-}				/* MV88X3120_register_settings() */
+}

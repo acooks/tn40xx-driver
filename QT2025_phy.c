@@ -30,7 +30,7 @@ static int QT2025_get_link_speed(struct bdx_priv *priv)
 
 	return speed;
 
-}				/* QT2025_get_link_speed() */
+}
 
 __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 			     unsigned short phy)
@@ -113,7 +113,7 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 
 	return 0;
 
-}				/* QT2025_mdio_reset */
+}
 
 /*
  * Module types:
@@ -157,7 +157,7 @@ u32 QT2025_link_changed(struct bdx_priv * priv)
 
 	return link;
 
-}				/* QT2025_link_changed() */
+}
 
 void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 {
@@ -182,7 +182,7 @@ void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 
 	}
 
-}				/* QT2025_leds() */
+}
 
 __init enum PHY_TYPE QT2025_register(struct bdx_priv *priv)
 {
@@ -197,4 +197,4 @@ __init enum PHY_TYPE QT2025_register(struct bdx_priv *priv)
 
 	return PHY_TYPE_QT2025;
 
-}				/* QT2025_init() */
+}
