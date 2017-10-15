@@ -30,6 +30,13 @@ sed -i 's|\s*ENTER\s*;||g' *.c
 # remove the definition of the ENTER macro
 sed -i 's|.*#define\s\+ENTER.*||' *.h
 
+
+# remove the use of the EXIT macro
+sed -i 's|\s*EXIT\s*;||g' *.c
+# remove the definition of the EXIT macro
+sed -i 's|.*#define\s\+EXIT.*||' *.h
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 

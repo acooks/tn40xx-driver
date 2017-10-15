@@ -254,8 +254,6 @@ void dbg_printRegs(struct bdx_priv *priv, char *msg)
 	dbg_printFifo(&priv->rxd_fifo0.m, (char *)"RXD");
 	DBG("~~~~~~~~~~~~~\n");
 
-	EXIT;
-
 }
 
 void dbg_printPBL(struct pbl *pbl)
@@ -3431,7 +3429,6 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 #else
 	netif_tx_unlock(priv->ndev);
 #endif
-	EXIT;
 
 }
 

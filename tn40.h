@@ -144,12 +144,11 @@ extern int g_ftrace;
 /*#define RET(args...) do { if (g_ftrace) printk(KERN_ERR  "%s:%-5d: - return\n", __func__, __LINE__); return args; } while (0) */
 
 #define RET(args...) do { if (g_ftrace) printk(KERN_ERR  BDX_DRV_NAME": %s: - return\n", __func__); return args; } while (0)
-#define EXIT         do { if (g_ftrace) printk(KERN_ERR  BDX_DRV_NAME": %s(): - exit\n", __func__);return;} while (0)
+
 #else
 #define FTRACE_ON
 #define FTRACE_OFF
 
-#define EXIT
 #define RET(args...)   		                return args
 #endif
 
