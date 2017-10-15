@@ -140,15 +140,15 @@ extern int g_dbg;
 extern int g_ftrace;
 #define FTRACE_ON		g_ftrace = 1
 #define FTRACE_OFF		g_ftrace = 0
-/*#define ENTER        do { if (g_ftrace) printk(KERN_ERR  "%s:%-5d: - enter\n", __func__, __LINE__); } while (0) */
+
 /*#define RET(args...) do { if (g_ftrace) printk(KERN_ERR  "%s:%-5d: - return\n", __func__, __LINE__); return args; } while (0) */
-#define ENTER        do { if (g_ftrace) printk(KERN_ERR  BDX_DRV_NAME": %s: - enter\n" , __func__); } while (0)
+
 #define RET(args...) do { if (g_ftrace) printk(KERN_ERR  BDX_DRV_NAME": %s: - return\n", __func__); return args; } while (0)
 #define EXIT         do { if (g_ftrace) printk(KERN_ERR  BDX_DRV_NAME": %s(): - exit\n", __func__);return;} while (0)
 #else
 #define FTRACE_ON
 #define FTRACE_OFF
-#define ENTER
+
 #define EXIT
 #define RET(args...)   		                return args
 #endif

@@ -30,8 +30,6 @@ int CX4_get_link_ksettings(struct net_device *netdev,
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
-	ENTER;
-
 	cmd->base.speed =
 	    (READ_REG(priv, regMAC_LNK_STAT) & MAC_LINK_STAT) ? priv->link_speed
 	    : 0;

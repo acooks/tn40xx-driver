@@ -243,7 +243,7 @@ void dbg_printFifo(struct fifo *m, char *fName)
 
 void dbg_printRegs(struct bdx_priv *priv, char *msg)
 {
-	ENTER;
+
 	DBG("* %s * \n", msg);
 	DBG("~~~~~~~~~~~~~\n");
 	DBG("veneto:");
@@ -666,7 +666,7 @@ bdx_fifo_init(struct bdx_priv *priv, struct fifo *f, int fsz_type,
  */
 static void bdx_fifo_free(struct bdx_priv *priv, struct fifo *f)
 {
-	ENTER;
+
 	if (f->va) {
 		pci_free_consistent(priv->pdev,
 				    f->memsz + FIFO_EXTRA_SPACE, f->va, f->da);
@@ -918,7 +918,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	u32 isr;
 
-	ENTER;
 	isr = READ_REG(priv, regISR_MSK0);
 	DBG("isr = 0x%x\n", isr);
 	/*  isr = READ_REG(priv, 0x5100); */
@@ -977,7 +976,6 @@ static irqreturn_t bdx_isr_napi(int irq, struct net_device *ndev)
 	struct bdx_priv *priv = ndev->priv;
 	u32 isr;
 
-	ENTER;
 	isr = READ_REG(priv, regISR_MSK0);
 	if (unlikely(!isr)) {
 		bdx_enable_interrupts(priv);
@@ -1035,7 +1033,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev, struct pt_regs *regs)
 	struct bdx_priv *priv = ndev->priv;
 	u32 isr;
 
-	ENTER;
 	isr = READ_REG(priv, regISR_MSK0);
 	if (unlikely(!isr)) {
 		bdx_enable_interrupts(priv);
@@ -1079,7 +1076,6 @@ static int bdx_poll(struct napi_struct *napi, int budget)
 	struct bdx_priv *priv = container_of(napi, struct bdx_priv, napi);
 	int work_done;
 
-	ENTER;
 	if (!priv->bDeviceRemoved) {
 		bdx_tx_cleanup(priv);
 
@@ -1101,7 +1097,6 @@ static int bdx_poll(struct napi_struct *napi, int budget)
 	struct bdx_priv *priv = container_of(napi, struct bdx_priv, napi);
 	int work_done;
 
-	ENTER;
 	if (!priv->bDeviceRemoved) {
 
 		bdx_tx_cleanup(priv);
@@ -1124,7 +1119,6 @@ static int bdx_poll(struct net_device *ndev, int *budget_p)
 	int work_done;
 	int rVal = 0;
 
-	ENTER;
 	if (!priv->bDeviceRemoved) {
 		bdx_tx_cleanup(priv);
 		work_done =
@@ -1158,7 +1152,6 @@ static int __init bdx_fw_load(struct bdx_priv *priv)
 	int master, i;
 	int rVal = 0;
 
-	ENTER;
 	master = READ_REG(priv, regINIT_SEMAPHORE);
 	if (!READ_REG(priv, regINIT_STATUS) && master) {
 		DBG("Loading FW...\n");
@@ -1191,7 +1184,6 @@ static void bdx_restore_mac(struct net_device *ndev, struct bdx_priv *priv)
 {
 	u32 val;
 
-	ENTER;
 	DBG("mac0 =%x mac1 =%x mac2 =%x\n",
 	    READ_REG(priv, regUNC_MAC0_A),
 	    READ_REG(priv, regUNC_MAC1_A), READ_REG(priv, regUNC_MAC2_A));
@@ -1284,8 +1276,6 @@ static  void bdx_setAffinity(u32 irq)
 static int bdx_hw_start(struct bdx_priv *priv)
 {
 
-	ENTER;
-
 	DBG("********** bdx_hw_start() ************\n");
 	priv->link_speed = 0;	/* -1 */
 	if (priv->phy_type == PHY_TYPE_CX4) {
@@ -1338,7 +1328,6 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 static void bdx_hw_stop(struct bdx_priv *priv)
 {
-	ENTER;
 
 	if ((priv->state & BDX_STATE_HW_STOPPED) == 0) {
 		priv->state |= BDX_STATE_HW_STOPPED;
@@ -1355,7 +1344,6 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 static int bdx_hw_reset_direct(void __iomem * regs)
 {
 	u32 val, i;
-	ENTER;
 
 	/* Reset sequences: read, write 1, read, write 0 */
 	val = readl(regs + regCLKPLL);
@@ -1381,7 +1369,6 @@ static int bdx_hw_reset_direct(void __iomem * regs)
 static int bdx_hw_reset(struct bdx_priv *priv)
 {
 	u32 val, i;
-	ENTER;
 
 	if (priv->port == 0) {
 		/* Reset sequences: read, write 1, read, write 0 */
@@ -1411,7 +1398,6 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 {
 	int i;
 
-	ENTER;
 	/* 1. load MAC (obsolete) */
 	/* 2. disable Rx (and Tx) */
 	WRITE_REG(priv, regGMAC_RXF_A, 0);
@@ -1468,7 +1454,7 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 /* bdx_reset - Perform the right type of reset depending on hw type */
 static int bdx_reset(struct bdx_priv *priv)
 {
-	ENTER;
+
 	/*  RET((priv->pdev->device == 0x4010) ? bdx_hw_reset(priv) : bdx_sw_reset(priv)); */
 	RET(bdx_hw_reset(priv));
 
@@ -1539,7 +1525,6 @@ static int bdx_close(struct net_device *ndev)
 {
 	struct bdx_priv *priv;
 
-	ENTER;
 	priv = netdev_priv(ndev);
 	bdx_stop(priv);
 	LUXOR__NAPI_DISABLE(&priv->napi);
@@ -1566,7 +1551,6 @@ static int bdx_open(struct net_device *ndev)
 	struct bdx_priv *priv;
 	int rc;
 
-	ENTER;
 	priv = netdev_priv(ndev);
 	priv->state |= BDX_STATE_OPEN;
 	bdx_sw_reset(priv);
@@ -1606,7 +1590,6 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 	int error;
 	u16 dev, addr;
 
-	ENTER;
 	DBG("jiffies =%ld cmd =%d\n", jiffies, cmd);
 	if (cmd != SIOCDEVPRIVATE) {
 		error =
@@ -1761,7 +1744,7 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 
 static int bdx_ioctl(struct net_device *ndev, struct ifreq *ifr, int cmd)
 {
-	ENTER;
+
 	if (cmd > SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + 15))
 		RET(bdx_ioctl_priv(ndev, ifr, cmd));
 	else
@@ -1780,7 +1763,6 @@ static void __bdx_vlan_rx_vid(struct net_device *ndev, uint16_t vid, int enable)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	u32 reg, bit, val;
 
-	ENTER;
 	DBG("vid =%d value =%d\n", (int)vid, enable);
 	if (unlikely(vid >= 4096)) {
 		ERR("invalid VID: %u (> 4096)\n", vid);
@@ -1861,7 +1843,6 @@ bdx_vlan_rx_register(struct net_device *ndev, struct vlan_group *grp)
 {
 	struct bdx_priv *priv = netdev_priv(ndev);
 
-	ENTER;
 	DBG("device ='%s', group ='%p'\n", ndev->name, grp);
 	priv->vlgrp = grp;
 	RET();
@@ -1878,7 +1859,6 @@ bdx_vlan_rx_register(struct net_device *ndev, struct vlan_group *grp)
  */
 static int bdx_change_mtu(struct net_device *ndev, int new_mtu)
 {
-	ENTER;
 
 	if (new_mtu == ndev->mtu)
 		RET(0);
@@ -1912,7 +1892,6 @@ static void bdx_setmulti(struct net_device *ndev)
 	    GMAC_RX_FILTER_TXFC;
 	int i;
 
-	ENTER;
 	/* IMF - imperfect (hash) rx multicast filter */
 	/* PMF - perfect rx multicast filter */
 
@@ -1973,7 +1952,6 @@ static int bdx_set_mac(struct net_device *ndev, void *p)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	struct sockaddr *addr = p;
 
-	ENTER;
 	/*
 	   if (netif_running(dev))
 	   return -EBUSY
@@ -1986,7 +1964,6 @@ static int bdx_set_mac(struct net_device *ndev, void *p)
 static int bdx_read_mac(struct bdx_priv *priv)
 {
 	u16 macAddress[3], i;
-	ENTER;
 
 	macAddress[2] = READ_REG(priv, regUNC_MAC0_A);
 	macAddress[2] = READ_REG(priv, regUNC_MAC0_A);
@@ -2156,7 +2133,6 @@ static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 
 static int bdx_rx_init(struct bdx_priv *priv)
 {
-	ENTER;
 
 	if (bdx_fifo_init(priv, &priv->rxd_fifo0.m, priv->rxd_size,
 			  regRXD_CFG0_0, regRXD_CFG1_0,
@@ -2191,7 +2167,6 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 	struct rx_map *dm;
 	u16 i;
 
-	ENTER;
 	DBG("total =%d free =%d busy =%d\n", db->nelem, bdx_rxdb_available(db),
 	    db->nelem - bdx_rxdb_available(db));
 	while (bdx_rxdb_available(db) > 0) {
@@ -2226,7 +2201,7 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
  */
 static void bdx_rx_free(struct bdx_priv *priv)
 {
-	ENTER;
+
 	if (priv->rxdb0) {
 		bdx_rx_free_buffers(priv, priv->rxdb0, &priv->rxf_fifo0);
 		bdx_rxdb_destroy(priv->rxdb0);
@@ -2272,7 +2247,6 @@ static void bdx_rx_alloc_buffers(struct bdx_priv *priv, struct rxdb *db,
 	DEF_TIMER(bdx_rx_alloc_buffers_2);
 	DEF_TIMER(bdx_rx_alloc_buffers_3);
 
-	ENTER;
 	dno = bdx_rxdb_available(db) - 1;
 
 	START_TIMER(bdx_rx_alloc_buffers);
@@ -2390,7 +2364,6 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 	struct rxdb *db;
 	int delta;
 
-	ENTER;
 	f = &priv->rxf_fifo0;
 	db = priv->rxdb0;
 	dm = bdx_rxdb_addr_elem(db, rxdd->va_lo);
@@ -2557,7 +2530,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 	DEF_TIMER(bdx_rx_receive_5);
 	DEF_TIMER(bdx_rx_receive_6);
 	START_TIMER(bdx_rx_receive);
-	ENTER;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0))
 	priv->ndev->last_rx = jiffies;
@@ -3256,7 +3228,6 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	int spinLocked;
 #endif
 
-	ENTER;
 	if (!(priv->state & BDX_STATE_STARTED)) {
 		return -1;
 	}
@@ -3394,7 +3365,6 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	struct txdb *db = &priv->txdb;
 	int tx_level = 0;
 
-	ENTER;
 	f->m.wptr = READ_REG(priv, f->m.reg_WPTR) & TXF_WPTR_MASK;
 	BDX_ASSERT(f->m.rptr >= f->m.memsz);	/* Started with valid rptr */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
@@ -3474,7 +3444,6 @@ static void bdx_tx_free_skbs(struct bdx_priv *priv)
 {
 	struct txdb *db = &priv->txdb;
 
-	ENTER;
 	while (db->rptr != db->wptr) {
 		if (likely(db->rptr->len))
 			pci_unmap_page(priv->pdev, db->rptr->addr.dma,
@@ -3490,7 +3459,7 @@ static void bdx_tx_free_skbs(struct bdx_priv *priv)
 
 static void bdx_tx_free(struct bdx_priv *priv)
 {
-	ENTER;
+
 	bdx_tx_free_skbs(priv);
 	bdx_fifo_free(priv, &priv->txd_fifo0.m);
 	bdx_fifo_free(priv, &priv->txf_fifo0.m);
@@ -3549,7 +3518,6 @@ static void bdx_tx_push_desc(struct bdx_priv *priv, void *data, int size)
 static void bdx_tx_push_desc_safe(struct bdx_priv *priv, void *data, int size)
 {
 	int timer = 0;
-	ENTER;
 
 	while (size > 0) {
 		/*
@@ -3671,8 +3639,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	u32 regionSize;
 	struct pci_nic *nic;
 	int phy;
-
-	ENTER;
 
 	nic = vmalloc(sizeof(*nic));
 	if (!nic) {
@@ -4001,8 +3967,6 @@ static int bdx_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 	u32 tdintcm;
 	struct bdx_priv *priv = netdev_priv(netdev);
 
-	ENTER;
-
 	rdintcm = priv->rdintcm;
 	tdintcm = priv->tdintcm;
 
@@ -4028,8 +3992,6 @@ static int bdx_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 static int bdx_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
-
-	ENTER;
 
 	DBG("ecmd->cmd=%x\n", ecmd->cmd);
 
@@ -4778,7 +4740,6 @@ static void __init print_driver_id(void)
 static int __init bdx_module_init(void)
 {
 
-	ENTER;
 #ifdef __BIG_ENDIAN
 	bdx_firmware_endianess();
 #endif
@@ -4792,7 +4753,7 @@ module_init(bdx_module_init);
 
 static void __exit bdx_module_exit(void)
 {
-	ENTER;
+
 	pci_unregister_driver(&bdx_pci_driver);
 	MSG("Driver unloaded\n");
 	RET();
