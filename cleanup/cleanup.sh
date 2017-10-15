@@ -25,6 +25,11 @@ sed -i 's|/\*\s*---*---*\s*\*/||g' *.c
 sed -i 's|\s*}\s*/\*.*\*/|}|g' *.c
 
 
+# remove the use of the ENTER macro
+sed -i 's|\s*ENTER\s*;||g' *.c
+# remove the definition of the ENTER macro
+sed -i 's|.*#define\s\+ENTER.*||' *.h
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
