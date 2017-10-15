@@ -1,7 +1,5 @@
 #include "tn40.h"
 
-/*------------------------------------------------------------------------------------------------- */
-
 int TLK10232_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
@@ -24,8 +22,6 @@ int TLK10232_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* TLK10232_get_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 int TLK10232_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
@@ -36,7 +32,6 @@ int TLK10232_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* TLK10232_set_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef ETHTOOL_GLINKSETTINGS
 
 int TLK10232_get_link_ksettings(struct net_device *netdev,
@@ -63,7 +58,7 @@ int TLK10232_get_link_ksettings(struct net_device *netdev,
 }				/* TLK10232_get_link_ksettings() */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
+
 #ifdef ETHTOOL_SLINKSETTINGS
 
 int TLK10232_set_link_ksettings(struct net_device *netdev,
@@ -78,7 +73,6 @@ int TLK10232_set_link_ksettings(struct net_device *netdev,
 }				/* TLK10232_set_link_ksettings() */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
 
 __init void TLK10232_register_settings(struct bdx_priv *priv)
 {
@@ -92,5 +86,3 @@ __init void TLK10232_register_settings(struct bdx_priv *priv)
 #endif
 
 }				/* MV88X3120_register_settings() */
-
-/*------------------------------------------------------------------------------------------------- */

@@ -13,8 +13,6 @@ int AQR105_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy);
 u32 AQR105_link_changed(struct bdx_priv *priv);
 void AQR105_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op);
 
-/*------------------------------------------------------------------------------------------------- */
-
 int AQR105_set_speed(struct bdx_priv *priv, signed int speed)
 {
 	u16 val, port = priv->phy_mdio_port;
@@ -77,8 +75,6 @@ int AQR105_set_speed(struct bdx_priv *priv, signed int speed)
 	return rVal;
 
 }				/* AQR105_set_settings() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 __init int AQR105_mdio_reset(struct bdx_priv *priv, int port,
 			     unsigned short phy)
@@ -380,8 +376,6 @@ D-link settings
 
 }				/* AQR105_mdio_reset */
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int AQR105_get_link_speed(struct bdx_priv *priv)
 {
 	unsigned short val;	/*, leds; */
@@ -457,8 +451,6 @@ static int AQR105_get_link_speed(struct bdx_priv *priv)
 
 }				/* AQR105_get_link_speed() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 u32 AQR105_link_changed(struct bdx_priv *priv)
 {
 	u32 link, speed;
@@ -515,8 +507,6 @@ u32 AQR105_link_changed(struct bdx_priv *priv)
 
 }				/* AQR105_link_changed() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void AQR105_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 {
 	u16 dev = 0x1e, led = 0xC430, led_off = 0, led_on = (1 << 8);
@@ -552,8 +542,6 @@ void AQR105_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 
 }				/* AQR105_leds() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 __init enum PHY_TYPE AQR105_register(struct bdx_priv *priv)
 {
 	priv->isr_mask =
@@ -568,5 +556,3 @@ __init enum PHY_TYPE AQR105_register(struct bdx_priv *priv)
 	return PHY_TYPE_AQR105;
 
 }				/* AQR105_register() */
-
-/*------------------------------------------------------------------------------------------------- */

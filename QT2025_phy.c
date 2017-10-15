@@ -8,8 +8,6 @@ int QT2025_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy);
 u32 QT2025_link_changed(struct bdx_priv *priv);
 void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op);
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int QT2025_get_link_speed(struct bdx_priv *priv)
 {
 	int speed;
@@ -33,8 +31,6 @@ static int QT2025_get_link_speed(struct bdx_priv *priv)
 	return speed;
 
 }				/* QT2025_get_link_speed() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 			     unsigned short phy)
@@ -119,8 +115,6 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 
 }				/* QT2025_mdio_reset */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /*
  * Module types:
  *
@@ -137,7 +131,6 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 		11 (0xB) = SFP+ active copper direct attach cable
 		>11 reserved for future use
 */
-/*------------------------------------------------------------------------------------------------- */
 
 u32 QT2025_link_changed(struct bdx_priv * priv)
 {
@@ -166,8 +159,6 @@ u32 QT2025_link_changed(struct bdx_priv * priv)
 
 }				/* QT2025_link_changed() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 {
 	switch (op) {
@@ -193,8 +184,6 @@ void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 
 }				/* QT2025_leds() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 __init enum PHY_TYPE QT2025_register(struct bdx_priv *priv)
 {
 	priv->isr_mask =
@@ -209,5 +198,3 @@ __init enum PHY_TYPE QT2025_register(struct bdx_priv *priv)
 	return PHY_TYPE_QT2025;
 
 }				/* QT2025_init() */
-
-/*------------------------------------------------------------------------------------------------- */

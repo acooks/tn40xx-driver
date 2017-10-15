@@ -196,7 +196,6 @@ int g_memLog = 0;
 
 #if defined(TN40_DEBUG)
 
-/*------------------------------------------------------------------------------------------------- */
 /*
 static void dbg_irqActions(struct pci_dev *pdev)
 {
@@ -233,7 +232,6 @@ DBG_OFF;
 } //dbg_irqActions()
 
 */
-/*------------------------------------------------------------------------------------------------- */
 
 void dbg_printFifo(struct fifo *m, char *fName)
 {
@@ -242,8 +240,6 @@ void dbg_printFifo(struct fifo *m, char *fName)
 	    m->reg_WPTR, m->wptr, m->reg_RPTR, m->rptr);
 
 }				/* dbg_printFifo() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 void dbg_printRegs(struct bdx_priv *priv, char *msg)
 {
@@ -262,8 +258,6 @@ void dbg_printRegs(struct bdx_priv *priv, char *msg)
 
 }				/* dbg_printRegs() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void dbg_printPBL(struct pbl *pbl)
 {
 	DBG("pbl: len %u pa_lo 0x%x pa_hi 0x%x\n", pbl->len, pbl->pa_lo,
@@ -271,7 +265,6 @@ void dbg_printPBL(struct pbl *pbl)
 
 }				/* dbg_printPBL() */
 
-/*------------------------------------------------------------------------------------------------- */
 #else
 #define dbg_printRegs(priv, msg)
 #define dbg_printPBL(pbl)
@@ -281,8 +274,6 @@ void dbg_printPBL(struct pbl *pbl)
 #if defined(FTRACE)
 int g_ftrace = 0;
 #endif
-
-/*------------------------------------------------------------------------------------------------- */
 
 #ifdef TN40_THUNDERBOLT
 
@@ -305,7 +296,6 @@ u32 tbReadReg(struct bdx_priv *priv, u32 reg)
 
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef REGLOG
 int g_regLog = 0;
 u32 bdx_readl(struct bdx_priv *priv, u32 reg)
@@ -354,8 +344,6 @@ u32 bdx_mdio_get(struct bdx_priv * priv)
 
 }				/* bdx_mdio_get() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* bdx_mdio_read - read a 16bit word through the MDIO interface
  * @priv
  * @device   - 5 bit device id
@@ -394,8 +382,6 @@ int bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
 
 }				/* bdx_mdio_read() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* bdx_mdio_write - writes a 16bit word through the MDIO interface
  * @priv
  * @device    - 5 bit device id
@@ -433,8 +419,6 @@ int bdx_mdio_write(struct bdx_priv *priv, int device, int port, u16 addr,
 
 }				/* bdx_mdio_write() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void setMDIOSpeed(struct bdx_priv *priv, u32 speed)
 {
 	void __iomem *regs = priv->pBdxRegs;
@@ -451,8 +435,6 @@ void setMDIOSpeed(struct bdx_priv *priv, u32 speed)
 	msleep(100);
 
 }				/* setMDIOSpeed() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 {
@@ -481,8 +463,6 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 	return rVal;
 
 }				/* bdx_mdio_look_for_phy() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 				      void __iomem * regs, int *port_t,
@@ -578,8 +558,6 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 	return (PHY_TYPE_NA == *phy_t) ? -1 : 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int __init bdx_mdio_reset(struct bdx_priv *priv, int port,
 				 unsigned short phy)
 {
@@ -623,14 +601,10 @@ static void print_hw_id(struct pci_dev *pdev)
 	    GET_DEV_CTRL_MAXPL(pci_ctrl), GET_DEV_CTRL_MRRS(pci_ctrl));
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static void print_fw_id(struct pci_nic *nic)
 {
 	MSG("fw 0x%x\n", readl(nic->regs + FW_VER));
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static void print_eth_id(struct net_device *ndev)
 {
@@ -686,8 +660,6 @@ bdx_fifo_init(struct bdx_priv *priv, struct fifo *f, int fsz_type,
 	RET(0);
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* bdx_fifo_free - Free all resources used by fifo
  * @priv     - Nic private structure
  * @f        - Fifo to release
@@ -702,8 +674,6 @@ static void bdx_fifo_free(struct bdx_priv *priv, struct fifo *f)
 	}
 	RET();
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 {
@@ -853,8 +823,6 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 
 }				/* bdx_speed_set() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void bdx_speed_changed(struct bdx_priv *priv, u32 speed)
 {
 
@@ -868,8 +836,6 @@ void bdx_speed_changed(struct bdx_priv *priv, u32 speed)
 	}
 
 }				/* bdx_speed_changed() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 /*
  * bdx_link_changed - Notify the OS about hw link state.
@@ -912,8 +878,6 @@ static void bdx_link_changed(struct bdx_priv *priv)
 
 }				/* bdx_link_changed() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 static inline void bdx_isr_extra(struct bdx_priv *priv, u32 isr)
 {
 	if (isr & (IR_LNKCHG0 | IR_LNKCHG1 | IR_TMR0)) {
@@ -931,8 +895,6 @@ static inline void bdx_isr_extra(struct bdx_priv *priv, u32 isr)
 		ERR("%s PCI-E Time Out\n", priv->ndev->name);
 #endif
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24) || (defined VM_KLNX)
 /* bdx_isr - Interrupt Service Routine for Bordeaux NIC
@@ -994,8 +956,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 	RET(IRQ_HANDLED);
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 /* bdx_isr - Interrupt Service Routine for Bordeaux NIC
  * @irq    - Interrupt number
@@ -1052,8 +1012,6 @@ static irqreturn_t bdx_isr_napi(int irq, struct net_device *ndev)
 	bdx_enable_interrupts(priv);
 	RET(IRQ_HANDLED);
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 #else
 /* bdx_isr - Interrupt Service Routine for Bordeaux NIC
@@ -1115,8 +1073,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev, struct pt_regs *regs)
 
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28) || (defined VM_KLNX)
 static int bdx_poll(struct napi_struct *napi, int budget)
 {
@@ -1139,8 +1095,6 @@ static int bdx_poll(struct napi_struct *napi, int budget)
 	return work_done;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 static int bdx_poll(struct napi_struct *napi, int budget)
 {
@@ -1162,8 +1116,6 @@ static int bdx_poll(struct napi_struct *napi, int budget)
 
 	return work_done;
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 #else
 static int bdx_poll(struct net_device *ndev, int *budget_p)
@@ -1191,8 +1143,6 @@ static int bdx_poll(struct net_device *ndev, int *budget_p)
 	return rVal;
 }
 #endif
-
-/*------------------------------------------------------------------------------------------------- */
 
 /* bdx_fw_load - Load the firmware to the NIC
  * @priv       - NIC private structure
@@ -1237,8 +1187,6 @@ static int __init bdx_fw_load(struct bdx_priv *priv)
 
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static void bdx_restore_mac(struct net_device *ndev, struct bdx_priv *priv)
 {
 	u32 val;
@@ -1260,8 +1208,6 @@ static void bdx_restore_mac(struct net_device *ndev, struct bdx_priv *priv)
 	    READ_REG(priv, regUNC_MAC1_A), READ_REG(priv, regUNC_MAC2_A));
 	RET();
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static void bdx_CX4_hw_start(struct bdx_priv *priv)
 {
@@ -1317,7 +1263,6 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 
 }				/* bdx_CX4_hw_start */
 
-/*------------------------------------------------------------------------------------------------- */
 /*
 static  void bdx_setAffinity(u32 irq)
 {
@@ -1332,8 +1277,6 @@ static  void bdx_setAffinity(u32 irq)
 
 } // setAffinity()
 */
-
-/*------------------------------------------------------------------------------------------------- */
 
 /* bdx_hw_start - Initialize registers and starts HW's Rx and Tx engines
  * @priv    - NIC private structure
@@ -1393,8 +1336,6 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 }				/* bdx_hw_start() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 static void bdx_hw_stop(struct bdx_priv *priv)
 {
 	ENTER;
@@ -1410,8 +1351,6 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 	RET();
 
 }				/* bdx_hw_stop() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_hw_reset_direct(void __iomem * regs)
 {
@@ -1438,8 +1377,6 @@ static int bdx_hw_reset_direct(void __iomem * regs)
 	RET(1);			/* failure */
 
 }				/* bdx_hw_reset_direct() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_hw_reset(struct bdx_priv *priv)
 {
@@ -1469,8 +1406,6 @@ static int bdx_hw_reset(struct bdx_priv *priv)
 	return 1;		/* Failure */
 
 }				/* bdx_hw_reset() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_sw_reset(struct bdx_priv *priv)
 {
@@ -1530,8 +1465,6 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 
 }				/* bdx_sw_reset() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* bdx_reset - Perform the right type of reset depending on hw type */
 static int bdx_reset(struct bdx_priv *priv)
 {
@@ -1540,8 +1473,6 @@ static int bdx_reset(struct bdx_priv *priv)
 	RET(bdx_hw_reset(priv));
 
 }				/* bdx_reset() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 {
@@ -1580,8 +1511,6 @@ static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 
 }				/* bdx_start() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 static void bdx_stop(struct bdx_priv *priv)
 {
 	if (priv->state & BDX_STATE_STARTED) {
@@ -1593,8 +1522,6 @@ static void bdx_stop(struct bdx_priv *priv)
 		bdx_tx_free(priv);
 	}
 }				/* bdx_stop() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 /**
  * bdx_close - Disables a network interface
@@ -1620,8 +1547,6 @@ static int bdx_close(struct net_device *ndev)
 	RET(0);
 
 }				/* bdx_close() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 /**
  * bdx_open - This API is called when a network interface is made active.
@@ -1658,8 +1583,6 @@ static int bdx_open(struct net_device *ndev)
 
 }				/* bdx_open() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 #ifdef __BIG_ENDIAN
 static void __init bdx_firmware_endianess(void)
 {
@@ -1670,15 +1593,11 @@ static void __init bdx_firmware_endianess(void)
 }
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int bdx_range_check(struct bdx_priv *priv, u32 offset)
 {
 	return ((offset > (u32) (BDX_REGS_SIZE / priv->nic->port_num)) ?
 		-EINVAL : 0);
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 {
@@ -1840,8 +1759,6 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int bdx_ioctl(struct net_device *ndev, struct ifreq *ifr, int cmd)
 {
 	ENTER;
@@ -1851,7 +1768,6 @@ static int bdx_ioctl(struct net_device *ndev, struct ifreq *ifr, int cmd)
 		RET(-EOPNOTSUPP);
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * __bdx_vlan_rx_vid - Private helper function for adding/killing VLAN vid
  *             by passing VLAN filter table to hardware
@@ -1883,7 +1799,6 @@ static void __bdx_vlan_rx_vid(struct net_device *ndev, uint16_t vid, int enable)
 	RET();
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_vlan_rx_add_vid - A kernel hook for adding VLAN vid to hw filtering
  *           table
@@ -1908,7 +1823,6 @@ static int bdx_vlan_rx_add_vid(struct net_device *ndev, u16 vid)
 }
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_vlan_rx_kill_vid - A kernel hook for killing VLAN vid in hw filtering
  *            table
@@ -1935,7 +1849,7 @@ static int bdx_vlan_rx_kill_vid(struct net_device *ndev, u16 vid)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 1,0)
-/*------------------------------------------------------------------------------------------------- */
+
 /*
  * bdx_vlan_rx_register - A kernel hook for adding VLAN group
  *
@@ -1954,7 +1868,6 @@ bdx_vlan_rx_register(struct net_device *ndev, struct vlan_group *grp)
 }
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
 /**
  * bdx_change_mtu - Change the Maximum Transfer Unit
  *
@@ -1989,8 +1902,6 @@ static int bdx_change_mtu(struct net_device *ndev, int new_mtu)
 	}
 	RET(0);
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static void bdx_setmulti(struct net_device *ndev)
 {
@@ -2057,8 +1968,6 @@ static void bdx_setmulti(struct net_device *ndev)
 	RET();
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int bdx_set_mac(struct net_device *ndev, void *p)
 {
 	struct bdx_priv *priv = netdev_priv(ndev);
@@ -2073,8 +1982,6 @@ static int bdx_set_mac(struct net_device *ndev, void *p)
 	bdx_restore_mac(ndev, priv);
 	RET(0);
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_read_mac(struct bdx_priv *priv)
 {
@@ -2094,8 +2001,6 @@ static int bdx_read_mac(struct bdx_priv *priv)
 	RET(0);
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static u64 bdx_read_l2stat(struct bdx_priv *priv, int reg)
 {
 	u64 val;
@@ -2105,7 +2010,6 @@ static u64 bdx_read_l2stat(struct bdx_priv *priv, int reg)
 	return val;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*Do the statistics-update work*/
 
 static void bdx_update_stats(struct bdx_priv *priv)
@@ -2152,8 +2056,6 @@ static void bdx_update_stats(struct bdx_priv *priv)
 	BDX_ASSERT((sizeof(struct bdx_stats) / sizeof(u64)) != i);
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static struct net_device_stats *bdx_get_stats(struct net_device *ndev)
 {
 	struct bdx_priv *priv = netdev_priv(ndev);
@@ -2178,8 +2080,6 @@ static void bdx_rxdb_destroy(struct rxdb *db)
 		vfree(db);
 	}
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 {
@@ -2209,15 +2109,11 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 	return db;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static inline int bdx_rxdb_alloc_elem(struct rxdb *db)
 {
 	BDX_ASSERT(db->top <= 0);
 	return db->stack[--(db->top)];
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static inline void *bdx_rxdb_addr_elem(struct rxdb *db, unsigned n)
 {
@@ -2225,14 +2121,10 @@ static inline void *bdx_rxdb_addr_elem(struct rxdb *db, unsigned n)
 	return db->elems + n;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static inline int bdx_rxdb_available(struct rxdb *db)
 {
 	return db->top;
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 {
@@ -2288,7 +2180,6 @@ err_mem:
 	return -ENOMEM;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_rx_free_buffers - Free and unmap all the fifo allocated buffers.
  *
  * @priv - NIC private structure
@@ -2327,7 +2218,6 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 	}
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_rx_free - Release all Rx resources.
  *
  * @priv       - NIC private structure
@@ -2492,8 +2382,6 @@ static void bdx_rx_alloc_buffers(struct bdx_priv *priv, struct rxdb *db,
 	RET();
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 {
 	struct rxf_desc *rxfd;
@@ -2526,8 +2414,6 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 	}
 	RET();
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 			      u16 proto)
@@ -2565,8 +2451,6 @@ static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 
 }				/* tcpCheckSum() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 #if defined(USE_PAGED_BUFFERS)
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 				int off, int len)
@@ -2587,8 +2471,6 @@ static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 #endif
 }
 #endif
-
-/*------------------------------------------------------------------------------------------------- */
 
 #define PKT_ERR_LEN		(70)
 
@@ -2639,7 +2521,6 @@ static int bdx_rx_error(char *pkt, u32 rxd_err, u16 len)
 
 }				/* bdx_rx_error() */
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_rx_receive - Receives full packet from RXD fifo and pass them to the OS.
  *
  * NOTE: A special treatment is given to non-contiguous descriptors that start
@@ -3004,8 +2885,6 @@ static void print_rxdd(struct rxd_desc *rxdd, u32 rxd_val1, u16 len,
 	    rxdd->va_hi);
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static void print_rxfd(struct rxf_desc *rxfd)
 {
 	/*  DBG("=== RxF desc CHIP ORDER/ENDIANESS =============\n" */
@@ -3013,7 +2892,6 @@ static void print_rxfd(struct rxf_desc *rxfd)
 	/*      rxfd->info, rxfd->va_lo, rxfd->pa_lo, rxfd->pa_hi, rxfd->len); */
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * TX HW/SW interaction overview
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3069,7 +2947,6 @@ static inline int bdx_tx_db_size(struct txdb *db)
 	return db->size - taken;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* __bdx_tx_ptr_next - A helper function, increment read/write pointer + wrap.
  *
  * @d   - Tx data base
@@ -3088,7 +2965,6 @@ static inline void __bdx_tx_db_ptr_next(struct txdb *db, struct tx_map **pptr)
 		*pptr = db->start;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_db_inc_rptr - Increment the read pointer.
  *
  * @d - tx data base
@@ -3099,7 +2975,6 @@ static inline void bdx_tx_db_inc_rptr(struct txdb *db)
 	__bdx_tx_db_ptr_next(db, &db->rptr);
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_db_inc_rptr - Increment the   write pointer.
  *
  * @d - tx data base
@@ -3111,7 +2986,6 @@ static inline void bdx_tx_db_inc_wptr(struct txdb *db)
 						   a result of write */
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_db_init - Create and initialize txdb.
  *
  * @d       - tx data base
@@ -3141,7 +3015,6 @@ static int bdx_tx_db_init(struct txdb *d, int sz_type)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_db_close - Close tx db and free all memory.
  *
  * @d - tx data base
@@ -3169,7 +3042,6 @@ static struct {
 	u16 qwords;		/* qword = 64 bit */
 } txd_sizes[MAX_PBL];
 
-/*------------------------------------------------------------------------------------------------- */
 /* txdb_map_skb - Create and store DMA mappings for skb's data blocks.
  *
  * @priv - NIC private structure
@@ -3190,16 +3062,12 @@ inline void bdx_setPbl(struct pbl *pbl, dma_addr_t dmaAddr, int len)
 
 }				/* bdx_setPbl() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 static inline void bdx_setTxdb(struct txdb *db, dma_addr_t dmaAddr, int len)
 {
 	db->wptr->len = len;
 	db->wptr->addr.dma = dmaAddr;
 
 }				/* bdx_setTxdb() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 				 struct txd_desc *txdd, int *nr_frags,
@@ -3272,8 +3140,6 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 
 }				/* bdx_tx_map_skb() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /*
  * init_txd_sizes - Pre-calculate the sizes of descriptors for skbs up to 16
  * frags The number of frags is used as an index to fetch the correct
@@ -3296,7 +3162,6 @@ static void __init init_txd_sizes(void)
 	}
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_tx_init - Initialize all Tx related stuff.  Namely, TXD and TXF fifos,
  *       database etc
@@ -3336,7 +3201,6 @@ err_mem:
 	return -ENOMEM;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_tx_space - Calculate the available space in the TX fifo.
  *
@@ -3355,14 +3219,11 @@ static inline int bdx_tx_space(struct bdx_priv *priv)
 	return (fsize);
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 void bdx_tx_timeout(struct net_device *ndev)
 {
 	DBG("%s: %s: TX timeout\n", BDX_DRV_NAME, ndev->name);
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_transmit - Send a packet to the NIC.
  *
  * @skb - Packet to send
@@ -3520,8 +3381,6 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 
 }				/* bdx_tx_transmit() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* bdx_tx_cleanup - Clean the TXF fifo, run in the context of IRQ.
  *
  * @priv - bdx adapter
@@ -3606,8 +3465,6 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 
 }				/* bdx_tx_cleanup() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* bdx_tx_free_skbs - Free all skbs from TXD fifo.
  *
  * This function is called when the OS shuts down this device, e.g. upon
@@ -3629,7 +3486,6 @@ static void bdx_tx_free_skbs(struct bdx_priv *priv)
 	RET();
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_free - Free all Tx resources */
 
 static void bdx_tx_free(struct bdx_priv *priv)
@@ -3649,7 +3505,6 @@ static void bdx_tx_free(struct bdx_priv *priv)
 
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_push_desc - Push a descriptor to TxD fifo.
  *
  * @priv - NIC private structure
@@ -3681,7 +3536,6 @@ static void bdx_tx_push_desc(struct bdx_priv *priv, void *data, int size)
 	WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* bdx_tx_push_desc_safe - Push descriptor to TxD fifo in a safe way.
  *
  * @priv - NIC private structure
@@ -3722,8 +3576,6 @@ static void bdx_tx_push_desc_safe(struct bdx_priv *priv, void *data, int size)
 	RET();
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 static const struct net_device_ops bdx_netdev_ops = {
 	.ndo_open = bdx_open,
@@ -3747,8 +3599,6 @@ static const struct net_device_ops bdx_netdev_ops = {
 };
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int bdx_get_ports_by_id(int vendor, int device)
 {
 #if 0
@@ -3761,8 +3611,6 @@ static int bdx_get_ports_by_id(int vendor, int device)
 #endif
 	return 1;
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_support_msi_by_id(int vendor, int device)
 {
@@ -3779,8 +3627,6 @@ static int bdx_support_msi_by_id(int vendor, int device)
 #endif
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 static int bdx_get_phy_by_id(int vendor, int device, int subsystem, int port)
 {
 	int i = 0;
@@ -3796,7 +3642,6 @@ static int bdx_get_phy_by_id(int vendor, int device, int subsystem, int port)
 
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /**
  * bdx_probe - Device Initialization Routine.
  *
@@ -4107,7 +3952,6 @@ static const char
 	"No tests defined"
 };
 
-/*------------------------------------------------------------------------------------------------- */
 /* Get strings for statistics counters */
 static const char
  bdx_stat_names[][ETH_GSTRING_LEN] = {
@@ -4145,7 +3989,6 @@ static const char
 	"OutOctects",		/* 0x73F0 */
 };
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_get_settings - Get device-specific settings.
  *
@@ -4176,7 +4019,6 @@ static int bdx_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_set_settings - set device-specific settings.
  *
@@ -4195,7 +4037,6 @@ static int bdx_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* bdx_set_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef ETHTOOL_GLINKSETTINGS
 
 int bdx_get_link_ksettings(struct net_device *netdev,
@@ -4218,7 +4059,7 @@ int bdx_get_link_ksettings(struct net_device *netdev,
 }				/* bdx_get_link_ksettings() */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
+
 #ifdef ETHTOOL_SLINKSETTINGS
 
 int bdx_set_link_ksettings(struct net_device *netdev,
@@ -4231,7 +4072,6 @@ int bdx_set_link_ksettings(struct net_device *netdev,
 }				/* bdx_set_link_ksettings() */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
 
 /*
  * bdx_get_drvinfo - Report driver information
@@ -4257,8 +4097,6 @@ bdx_get_drvinfo(struct net_device *netdev, struct ethtool_drvinfo *drvinfo)
 	drvinfo->eedump_len = 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3,0)
 /*
  * bdx_get_rx_csum - Report whether receive checksums are turned on or off.
@@ -4269,8 +4107,6 @@ static u32 bdx_get_rx_csum(struct net_device *netdev)
 {
 	return 1;		/* Always on */
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 /*
  * bdx_get_tx_csum - Report whether transmit checksums are turned on or off.
@@ -4283,7 +4119,6 @@ static u32 bdx_get_tx_csum(struct net_device *netdev)
 }
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_get_coalesce - Get interrupt coalescing parameters.
  *
@@ -4316,7 +4151,6 @@ bdx_get_coalesce(struct net_device *netdev, struct ethtool_coalesce *ecoal)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_set_coalesce - Set interrupt coalescing parameters.
  *
@@ -4364,7 +4198,6 @@ bdx_set_coalesce(struct net_device *netdev, struct ethtool_coalesce *ecoal)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* Convert RX fifo size to number of pending packets */
 
 static inline int bdx_rx_fifo_size_to_packets(int rx_size)
@@ -4372,7 +4205,6 @@ static inline int bdx_rx_fifo_size_to_packets(int rx_size)
 	return ((FIFO_SIZE * (1 << rx_size)) / sizeof(struct rxf_desc));
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /* Convert TX fifo size to number of pending packets */
 
 static inline int bdx_tx_fifo_size_to_packets(int tx_size)
@@ -4380,7 +4212,6 @@ static inline int bdx_tx_fifo_size_to_packets(int tx_size)
 	return ((FIFO_SIZE * (1 << tx_size)) / BDX_TXF_DESC_SZ);
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_get_ringparam - Report ring sizes.
  *
@@ -4399,7 +4230,6 @@ bdx_get_ringparam(struct net_device *netdev, struct ethtool_ringparam *ring)
 	ring->tx_pending = bdx_tx_fifo_size_to_packets(priv->txd_size);
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_set_ringparam - Set ring sizes.
  *
@@ -4446,7 +4276,6 @@ bdx_set_ringparam(struct net_device *netdev, struct ethtool_ringparam *ring)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_get_strings - Return a set of strings that describe the requested
  *           objects.
@@ -4467,7 +4296,7 @@ static void bdx_get_strings(struct net_device *netdev, u32 stringset, u8 * data)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-/*------------------------------------------------------------------------------------------------- */
+
 /*
  * bdx_get_sset_count - Return the number of statistics or tests.
  *
@@ -4487,8 +4316,6 @@ static int bdx_get_sset_count(struct net_device *netdev, int stringset)
 	}
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 #endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
 /*
@@ -4505,7 +4332,6 @@ static int bdx_get_stats_count(struct net_device *netdev)
 }
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
 /*
  * bdx_get_ethtool_stats - Return device's hardware L2 statistics.
  *
@@ -4530,7 +4356,6 @@ static void bdx_get_ethtool_stats(struct net_device *netdev,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 
-/*------------------------------------------------------------------------------------------------- */
 /* Blink LED's for finding board */
 
 static int bdx_set_phys_id(struct net_device *netdev,
@@ -4561,8 +4386,6 @@ static int bdx_set_phys_id(struct net_device *netdev,
 	return rval;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 #else
 
 static void bdx_blink_callback(unsigned long data)
@@ -4578,8 +4401,6 @@ static void bdx_blink_callback(unsigned long data)
 
 	mod_timer(&priv->blink_timer, jiffies + HZ);
 }
-
-/*------------------------------------------------------------------------------------------------- */
 
 /*
  * bdx_phys_id - Blink the device led.
@@ -4609,7 +4430,7 @@ static int bdx_phys_id(struct net_device *netdev, u32 data)
 #endif
 #ifdef _EEE_
 #ifdef ETHTOOL_GEEE
-/*------------------------------------------------------------------------------------------------- */
+
 /*
  * bdx_get_eee - Get device-specific EEE settings
  *
@@ -4635,7 +4456,7 @@ static int bdx_get_eee(struct net_device *netdev, struct ethtool_eee *edata)
 }				/* bdx_get_eee() */
 #endif
 #ifdef ETHTOOL_SEEE
-/*------------------------------------------------------------------------------------------------- */
+
 /*
  * bdx_set_eee - set device-specific EEE settings
  *
@@ -4659,7 +4480,7 @@ static int bdx_set_eee(struct net_device *netdev, struct ethtool_eee *edata)
 }				/* bdx_set_eee() */
 #endif
 #endif
-/*------------------------------------------------------------------------------------------------- */
+
 /*
  * bdx_ethtool_ops - Ethtool interface implementation.
  *
@@ -4736,8 +4557,6 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 
 }				/* bdx_ethtool_ops() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /**
  * bdx_remove - Device removal routine.
  *
@@ -4783,7 +4602,6 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 
 }				/* bdx_remove() */
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef _DRIVER_RESUME_
 
 #define PCI_PMCR 0x7C
@@ -4804,8 +4622,6 @@ static int bdx_suspend(struct device *dev)
 	return 0;
 
 }				/* bdx_suspend() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static int bdx_resume(struct device *dev)
 {
@@ -4842,7 +4658,6 @@ static int bdx_resume(struct device *dev)
 }				/* bdx_resume() */
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef _DRIVER_RESUME_
 __refdata static struct dev_pm_ops bdx_pm_ops = {
 	.suspend = bdx_suspend,
@@ -4864,7 +4679,6 @@ __refdata static struct pci_driver bdx_pci_driver = {
 
 };
 
-/*------------------------------------------------------------------------------------------------- */
 #ifndef _DRIVER_RESUME_
 
 int bdx_no_hotplug(struct pci_dev *pdev, const struct pci_device_id *ent)
@@ -4876,7 +4690,6 @@ int bdx_no_hotplug(struct pci_dev *pdev, const struct pci_device_id *ent)
 }				/* bdx_no_hotplug */
 
 #endif
-/*------------------------------------------------------------------------------------------------- */
 
 static void __init bdx_scan_pci(void)
 {
@@ -4914,8 +4727,6 @@ static void __init bdx_scan_pci(void)
 	MSG("detected %d cards, %d loaded\n", nDevices, nLoaded);
 
 }				/* bdx_scan_pci() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 static void bdx_print_phys(void)
 {
@@ -4955,8 +4766,6 @@ static void bdx_print_phys(void)
 
 }				/* bdx_print_phys() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /*
  * print_driver_id - Print the driver build parameters the .
  */
@@ -4980,8 +4789,6 @@ static int __init bdx_module_init(void)
 }
 
 module_init(bdx_module_init);
-
-/*------------------------------------------------------------------------------------------------- */
 
 static void __exit bdx_module_exit(void)
 {

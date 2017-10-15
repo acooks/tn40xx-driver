@@ -15,8 +15,6 @@ int CX4_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* CX4_get_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 int CX4_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 {
 	ERR("CX4_set_settings() not implemented\n");
@@ -25,7 +23,6 @@ int CX4_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 
 }				/* CX4_set_settings() */
 
-/*------------------------------------------------------------------------------------------------- */
 #ifdef ETHTOOL_GLINKSETTINGS
 
 int CX4_get_link_ksettings(struct net_device *netdev,
@@ -54,7 +51,7 @@ int CX4_get_link_ksettings(struct net_device *netdev,
 
 }				/* CX4_get_link_ksettings() */
 #endif
-/*------------------------------------------------------------------------------------------------- */
+
 #ifdef ETHTOOL_SLINKSETTINGS
 
 int CX4_set_link_ksettings(struct net_device *netdev,
@@ -66,7 +63,6 @@ int CX4_set_link_ksettings(struct net_device *netdev,
 
 }				/* CX4_set_link_ksettings() */
 #endif
-/*------------------------------------------------------------------------------------------------- */
 
 __init void CX4_register_settings(struct bdx_priv *priv)
 {
@@ -80,5 +76,3 @@ __init void CX4_register_settings(struct bdx_priv *priv)
 #endif
 	priv->autoneg = AUTONEG_DISABLE;
 }				/* CX4_register_settings() */
-
-/*------------------------------------------------------------------------------------------------- */

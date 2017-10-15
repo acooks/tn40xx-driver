@@ -66,8 +66,6 @@ READ_REG(priv, 0x5030); WRITE_REG(priv, 0x51F0, ( val) );\
 #define LOG_I2C(fmt, args...)   do {  } while (0)
 #endif
 
-/*------------------------------------------------------------------------------------------------- */
-
 u32 read_GPIO_N(struct bdx_priv *priv, u32 n)
 {
 	u32 ret, rw, i, msk = (1 << (n & 0x7));
@@ -86,8 +84,6 @@ u32 read_GPIO_N(struct bdx_priv *priv, u32 n)
 
 }				/* read_GPIO_N() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void clear_GPIO_N(struct bdx_priv *priv, u32 n)
 {
 	u32 rw, msk = ~(1 << (n & 0x7));
@@ -100,8 +96,6 @@ void clear_GPIO_N(struct bdx_priv *priv, u32 n)
 
 }				/* clear_GPIO_N() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* Set SCL as input and return current level of line, 0 or 1 */
 #define read_SCL(p) read_GPIO_N((p),SCL_GPIO)
 /* Set SDA as input and return current level of line, 0 or 1 */
@@ -112,8 +106,6 @@ void clear_GPIO_N(struct bdx_priv *priv, u32 n)
 #define  clear_SDA(p) clear_GPIO_N((p),SDA_GPIO)
 
 /*return 0-ok 1-CLK==0 */
-
-/*------------------------------------------------------------------------------------------------- */
 
 int i2c_SCL_stretch(struct bdx_priv *priv)
 {
@@ -127,8 +119,6 @@ int i2c_SCL_stretch(struct bdx_priv *priv)
 	return (i) ? 0 : 1;
 
 }				/* i2c_SCL_stretch() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 int i2c_start_cond(struct bdx_priv *priv, int I2C_started)
 {
@@ -162,8 +152,6 @@ int i2c_start_cond(struct bdx_priv *priv, int I2C_started)
 
 }				/* i2c_start_cond() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 int i2c_stop_cond(struct bdx_priv *priv)
 {
 	int ret = 0;
@@ -193,8 +181,6 @@ int i2c_stop_cond(struct bdx_priv *priv)
 
 }				/* i2c_stop_cond() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* Write a bit to I2C bus */
 int i2c_write_bit(struct bdx_priv *priv, int bit)
 {
@@ -222,8 +208,6 @@ int i2c_write_bit(struct bdx_priv *priv, int bit)
 
 }				/* i2c_write_bit() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* Read a bit from I2C bus */
 int i2c_read_bit(struct bdx_priv *priv)
 {
@@ -242,8 +226,6 @@ int i2c_read_bit(struct bdx_priv *priv)
 	return bit ? 1 : 0;
 
 }				/* i2c_read_bit() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 /* Write a byte to I2C bus. Return 0 if ack by the slave. */
 int i2c_write_byte(struct bdx_priv *priv, int send_start,
@@ -269,8 +251,6 @@ int i2c_write_byte(struct bdx_priv *priv, int send_start,
 
 }				/* i2c_write_byte() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 /* Read a byte from I2C bus */
 unsigned char i2c_read_byte(struct bdx_priv *priv, int nack, int send_stop)
 {
@@ -291,8 +271,6 @@ unsigned char i2c_read_byte(struct bdx_priv *priv, int nack, int send_stop)
 
 }				/* i2c_read_byte() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void sff_reset(struct bdx_priv *priv)
 {
 	int i;
@@ -305,8 +283,6 @@ void sff_reset(struct bdx_priv *priv)
 	read_SDA(priv);
 
 }				/* sff_reset() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 /*
 Return len or 0 on error
@@ -370,8 +346,6 @@ int sff_read_str(struct bdx_priv *priv, unsigned char sfp_adr,
 
 }				/* sff_read_str() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 int sff_write_str(struct bdx_priv *priv, unsigned char sfp_adr,
 		  unsigned char addr, int len, char *buf)
 {
@@ -433,8 +407,6 @@ int sff_write_str(struct bdx_priv *priv, unsigned char sfp_adr,
 
 }				/* sff_write_str() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void set_GPIO(struct bdx_priv *priv)
 {
 	u32 input_msk =
@@ -443,8 +415,6 @@ void set_GPIO(struct bdx_priv *priv)
 	WRITE_GPOI_REG(priv, 6, input_msk);
 
 }				/* set_GPIO() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 int read_sfp_id(struct bdx_priv *priv)
 {
@@ -477,13 +447,9 @@ int read_sfp_id(struct bdx_priv *priv)
 
 }				/* read_sfp_id() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 #else
 #define read_sfp_id(p) (SFP_10G)
 #endif
-
-/*------------------------------------------------------------------------------------------------- */
 
 int TLK10232_phy_config(struct bdx_priv *priv)
 {
@@ -533,8 +499,6 @@ int TLK10232_phy_config(struct bdx_priv *priv)
 	return 0;
 }
 
-/*------------------------------------------------------------------------------------------------- */
-
 int TLK10232_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy)
 {
 	int regVal;
@@ -555,8 +519,6 @@ int TLK10232_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy)
 	return 0;
 
 }				/* TLK10232_mdio_reset */
-
-/*------------------------------------------------------------------------------------------------- */
 
 u32 TLK10232_get_link_speed(struct bdx_priv * priv)
 {
@@ -583,8 +545,6 @@ u32 TLK10232_get_link_speed(struct bdx_priv * priv)
 	return speed;
 
 }				/* TLK10232_get_link_speed() */
-
-/*------------------------------------------------------------------------------------------------- */
 
 u32 TLK10232_link_changed(struct bdx_priv * priv)
 {
@@ -615,8 +575,6 @@ u32 TLK10232_link_changed(struct bdx_priv * priv)
 
 }				/* TLK10232_link_changed() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 void TLK10232_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 {
 	switch (op) {
@@ -642,8 +600,6 @@ void TLK10232_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 
 }				/* TLK10232_leds() */
 
-/*------------------------------------------------------------------------------------------------- */
-
 __init enum PHY_TYPE TLK10232_register(struct bdx_priv *priv)
 {
 	priv->isr_mask =
@@ -658,5 +614,3 @@ __init enum PHY_TYPE TLK10232_register(struct bdx_priv *priv)
 	return PHY_TYPE_TLK10232;
 
 }				/* TLK10232_init() */
-
-/*------------------------------------------------------------------------------------------------- */
