@@ -37,6 +37,12 @@ sed -i 's|\s*EXIT\s*;||g' *.c
 sed -i 's|.*#define\s\+EXIT.*||' *.h
 
 
+# remove the use of the RET() macro
+sed -i 's|\(\s\+\)RET(\(.*\));|\1return \2;|' *.c
+# remove the definition of the RET() macro
+sed -i 's|.*#define\s\+RET\(.*\).*||' *.h
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
