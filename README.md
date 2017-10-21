@@ -10,6 +10,7 @@ This driver enables the following 10Gb SFP+ NICs:
 ... as well as the following 10GBase-T/NBASE-T NICs:
 - D-Link DXE-810T
 - Edimax EN-9320TX-E
+- StarTech ST10GSPEXNB
 
 An official tn40xx driver is distributed by Tehuti Networks under GPLv2 license, with all the copyright entitlements and restrictions associated with GPLv2 works. OEM vendors (like those listed above) also provide tn40xx drivers from their websites.
 
