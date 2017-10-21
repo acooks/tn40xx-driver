@@ -444,7 +444,7 @@ static int AQR105_get_link_speed(struct bdx_priv *priv)
 		}
 	}
 
-	RET(link);
+	return link;
 
 }
 
@@ -499,7 +499,7 @@ u32 AQR105_link_changed(struct bdx_priv *priv)
 		WRITE_REG(priv, 0x5150, timeout);
 	}
 
-	RET(link);
+	return link;
 
 }
 

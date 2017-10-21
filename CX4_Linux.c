@@ -45,7 +45,7 @@ int CX4_get_link_ksettings(struct net_device *netdev,
 	memcpy(cmd->link_modes.advertising, cmd->link_modes.supported,
 	       sizeof(cmd->link_modes.advertising));
 
-	RET(0);
+	return 0;
 
 }
 #endif

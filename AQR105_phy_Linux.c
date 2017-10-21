@@ -139,7 +139,7 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 	memcpy(cmd->link_modes.advertising, priv->link_advertising,
 	       sizeof(cmd->link_modes.advertising));
 
-	RET(0);
+	return 0;
 
 }
 
@@ -191,7 +191,7 @@ int AQR105_set_link_ksettings(struct net_device *netdev,
 		rVal = AQR105_set_speed(priv, cmd->base.speed);
 	}
 
-	RET(0);
+	return 0;
 
 }
 
