@@ -43,6 +43,15 @@ sed -i 's|\(\s\+\)RET(\(.*\));|\1return \2;|' *.c
 sed -i 's|.*#define\s\+RET\(.*\).*||' *.h
 
 
+# remove dead code disguised as comments
+# weed out function calls first
+sed -i 's|/\*\s*.*(.*);.*\*/||g' *.c *.h
+# weed out assignments involving struct members
+sed -i 's|/\*\s*.*\..*=.*;.*\*/||g' *.c *.h
+sed -i 's|/\*\s*.*->.*=.*;.*\*/||g' *.c *.h
+sed -i 's|/\*\s*.*=.*->.*;.*\*/||g' *.c *.h
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
