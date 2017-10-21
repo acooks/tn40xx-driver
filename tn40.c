@@ -128,8 +128,7 @@ static void bdx_tx_push_desc_safe(struct bdx_priv *priv, void *data, int size);
 /* Definitions needed by bdx_probe */
 static void bdx_ethtool_ops(struct net_device *netdev);
 #ifdef _DRIVER_RESUME_
-/*static int bdx_suspend(struct pci_dev *pdev, pm_message_t state); */
-/*static int bdx_resume (struct pci_dev *pdev); */
+
 static int bdx_suspend(struct device *dev);
 static int bdx_resume(struct device *dev);
 #endif
@@ -333,7 +332,7 @@ u32 bdx_mdio_get(struct bdx_priv * priv)
 		u32 mdio_cmd_stat = readl(regs + regMDIO_CMD_STAT);
 
 		if (GET_MDIO_BUSY(mdio_cmd_stat) == 0) {
-			/*          ERR("mdio_get success after %d tries (val=%u 0x%x)\n", tries, mdio_cmd_stat, mdio_cmd_stat); */
+
 			return mdio_cmd_stat;
 		}
 	}
@@ -375,7 +374,7 @@ int bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
 		return -1;
 	}
 	tmp_reg = readl(regs + regMDIO_DATA);
-	/*  ERR("MDIO_READ: MDIO_DATA =0x%x \n", (tmp_reg & 0xFFFF)); */
+
 	return (int)(tmp_reg & 0xFFFF);
 
 }
@@ -677,8 +676,6 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 {
 	int i;
 	u32 val;
-	/*void __iomem * regs=priv->pBdxRegs; */
-	/*int port=priv->phy_mdio_port; */
 
 	DBG("speed %d\n", speed);
 
@@ -689,7 +686,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 	case SPEED_1000X:
 	case SPEED_100X:
 		DBG("link_speed %d\n", speed);
-		/* BDX_MDIO_WRITE(priv, 1,0,0x2040); */
+
 		WRITE_REG(priv, 0x1010, 0x217);	/*ETHSD.REFCLK_CONF  */
 		WRITE_REG(priv, 0x104c, 0x4c);	/*ETHSD.L0_RX_PCNT  */
 		WRITE_REG(priv, 0x1050, 0x4c);	/*ETHSD.L1_RX_PCNT  */
@@ -700,7 +697,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 		WRITE_REG(priv, 0x1034, 0x434);	/*ETHSD.L2_TX_PCNT  */
 		WRITE_REG(priv, 0x1038, 0x434);	/*ETHSD.L3_TX_PCNT  */
 		WRITE_REG(priv, 0x6300, 0x0400);	/*MAC.PCS_CTRL */
-		/*  udelay(50); val = READ_REG(priv,0x6300);ERR("MAC init:0x6300= 0x%x \n",val); */
+
 		WRITE_REG(priv, 0x1018, 0x00);	/*Mike2 */
 		udelay(5);
 		WRITE_REG(priv, 0x1018, 0x04);	/*Mike2 */
@@ -720,7 +717,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 			if (val & (1 << 9)) {
 				WRITE_REG(priv, 0x1014, 0x3);	/*ETHSD.INIT_STAT */
 				val = READ_REG(priv, 0x1014);	/*ETHSD.INIT_STAT */
-				/*                 ERR("MAC init:0x1014=0x%x i=%d\n",val,i); */
+
 				break;
 			}
 		}
@@ -740,12 +737,12 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 			udelay(50);
 		}
 		WRITE_REG(priv, 0x111c, 0x0);	/*MAC.MAC_RST_CNT */
-		/*WRITE_REG(priv, 0x1104,0x24);  // EEE_CTRL.EXT_PHY_LINK=1 (bit 2) */
+
 		break;
 
 	case SPEED_1000:
 	case SPEED_100:
-		/*BDX_MDIO_WRITE(priv, 1,0,0x2000);       // write  1.0 0x2000  # Force 1G */
+
 		WRITE_REG(priv, 0x1010, 0x613);	/*ETHSD.REFCLK_CONF  */
 		WRITE_REG(priv, 0x104c, 0x4d);	/*ETHSD.L0_RX_PCNT  */
 		WRITE_REG(priv, 0x1050, 0x0);	/*ETHSD.L1_RX_PCNT  */
@@ -756,7 +753,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 		WRITE_REG(priv, 0x1034, 0x0);	/*ETHSD.L2_TX_PCNT  */
 		WRITE_REG(priv, 0x1038, 0x0);	/*ETHSD.L3_TX_PCNT  */
 		WRITE_REG(priv, 0x6300, 0x01140);	/*MAC.PCS_CTRL */
-		/*  udelay(50); val = READ_REG(priv,0x6300);ERR("MAC init:0x6300= 0x%x \n",val); */
+
 		WRITE_REG(priv, 0x1014, 0x043);	/*ETHSD.INIT_STAT */
 		for (i = 1000; i; i--) {
 			udelay(50);
@@ -764,7 +761,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 			if (val & (1 << 9)) {
 				WRITE_REG(priv, 0x1014, 0x3);	/*ETHSD.INIT_STAT */
 				val = READ_REG(priv, 0x1014);	/*ETHSD.INIT_STAT */
-				/*                 ERR("MAC init:0x1014= 0x%x i=%d\n",val,i); */
+
 				break;
 			}
 		}
@@ -773,8 +770,6 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 		}
 		WRITE_REG(priv, 0x6350, 0x2b);	/*MAC.PCS_IF_MODE 1g */
 		WRITE_REG(priv, 0x6310, 0x9801);	/*MAC.PCS_DEV_AB */
-		/*100 WRITE_REG(priv, 0x6350, 0x27); /*MAC.PCS_IF_MODE 100m* / */
-		/*100 WRITE_REG(priv, 0x6310, 0x9501); /*MAC.PCS_DEV_AB * / */
 
 		WRITE_REG(priv, 0x6314, 0x1);	/*MAC.PCS_PART_AB */
 		WRITE_REG(priv, 0x6348, 0xc8);	/*MAC.PCS_LINK_LO */
@@ -787,11 +782,11 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 		}
 		WRITE_REG(priv, 0x111c, 0x0);	/*MAC.MAC_RST_CNT */
 		WRITE_REG(priv, 0x6300, 0x1140);	/*MAC.PCS_CTRL */
-		/*        WRITE_REG(priv, 0x1104,0x24);  // EEE_CTRL.EXT_PHY_LINK=1 (bit 2) */
+
 		break;
 
 	case 0:		/* Link down */
-		/*  WRITE_REG(priv, 0x1010, 0x613); /*ETHSD.REFCLK_CONF  * / */
+
 		WRITE_REG(priv, 0x104c, 0x0);	/*ETHSD.L0_RX_PCNT  */
 		WRITE_REG(priv, 0x1050, 0x0);	/*ETHSD.L1_RX_PCNT  */
 		WRITE_REG(priv, 0x1054, 0x0);	/*ETHSD.L2_RX_PCNT  */
@@ -800,8 +795,6 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 		WRITE_REG(priv, 0x1030, 0x0);	/*ETHSD.L1_TX_PCNT  */
 		WRITE_REG(priv, 0x1034, 0x0);	/*ETHSD.L2_TX_PCNT  */
 		WRITE_REG(priv, 0x1038, 0x0);	/*ETHSD.L3_TX_PCNT  */
-
-		/*                 WRITE_REG(priv, 0x1104,0x20); // EEE_CTRL.EXT_PHY_LINK=0 (bit 2) */
 
 		WRITE_REG(priv, regCTRLST, 0x800);
 		WRITE_REG(priv, 0x111c, 0x7ff);	/*MAC.MAC_RST_CNT */
@@ -918,7 +911,7 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 
 	isr = READ_REG(priv, regISR_MSK0);
 	DBG("isr = 0x%x\n", isr);
-	/*  isr = READ_REG(priv, 0x5100); */
+
 	if (unlikely(!isr)) {
 		bdx_enable_interrupts(priv);
 		return IRQ_NONE;	/* Not our interrupt */
@@ -1216,7 +1209,6 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 	WRITE_REG(priv, 0x1038, 0x434);
 
 	WRITE_REG(priv, 0x6300, 0x0400);
-	/*  udelay(50); val = READ_REG(priv,0x6300);ERR("MAC init:0x6300= 0x%x \n",val); */
 
 	WRITE_REG(priv, 0x1014, 0x043);
 	for (i = 1000; i; i--) {
@@ -1248,7 +1240,7 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 	WRITE_REG(priv, regTX_FIFO_SECTION, 0xE00010);
 	WRITE_REG(priv, regRX_FULLNESS, 0);
 	WRITE_REG(priv, regTX_FULLNESS, 0);
-	/*  WRITE_REG(priv, regCTRLST,  regCTRLST_BASE | regCTRLST_RX_ENA | regCTRLST_TX_ENA); */
+
 	WRITE_REG(priv, regCTRLST, 0xA13);	/*0x93//0x13 */
 
 }
@@ -1302,20 +1294,19 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 	DBG("RDINTCM =%08x\n", priv->rdintcm);	/*NOTE: test script uses this */
 	WRITE_REG(priv, regRDINTCM0, priv->rdintcm);
-	WRITE_REG(priv, regRDINTCM2, 0);	/*cpu_to_le32(rcm.val)); */
+	WRITE_REG(priv, regRDINTCM2, 0);
 
 	DBG("TDINTCM =%08x\n", priv->tdintcm);	/*NOTE: test script uses this */
 	WRITE_REG(priv, regTDINTCM0, priv->tdintcm);	/* old val = 0x300064 */
 
 	/* Enable timer interrupt once in 2 secs. */
-	/*WRITE_REG(priv, regGTMR0, ((GTMR_SEC * 2) & GTMR_DATA)); */
+
 	bdx_restore_mac(priv->ndev, priv);
 
 	WRITE_REG(priv, regGMAC_RXF_A,
 		  GMAC_RX_FILTER_OSEN | GMAC_RX_FILTER_TXFC | GMAC_RX_FILTER_AM
 		  | GMAC_RX_FILTER_AB);
 
-	/*  bdx_setAffinity(priv->pdev->irq); */
 	bdx_link_changed(priv);
 	bdx_enable_interrupts(priv);
 	LUXOR__POLL_ENABLE(priv->ndev);
@@ -1426,7 +1417,7 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 	WRITE_REG(priv, regRST_PORT, 1);
 	/* 9. Zero all read and write pointers */
 	/*for (i = regTXD_WPTR_0; i <= regTXF_RPTR_3; i += 0x10) */
-	/*    DBG("%x = %x\n", i, READ_REG(priv, i) & TXF_WPTR_WR_PTR); */
+
 	for (i = regTXD_WPTR_0; i <= regTXF_RPTR_3; i += 0x10)
 		WRITE_REG(priv, i, 0);
 	/* 10. Unset port disable */
@@ -1442,7 +1433,7 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 	/* 15. Save MAC (obsolete) */
 	/*for (i = regTXD_WPTR_0; i <= regTXF_RPTR_3; i += 0x10) */
 	/*{ */
-	/*    DBG("%x = %x\n", i, READ_REG(priv, i) & TXF_WPTR_WR_PTR); */
+
 	/*} */
 
 	return 0;
@@ -1453,7 +1444,6 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 static int bdx_reset(struct bdx_priv *priv)
 {
 
-	/*  return (priv->pdev->device == 0x4010) ? bdx_hw_reset(priv) : bdx_sw_reset(priv); */
 	return bdx_hw_reset(priv);
 
 }
@@ -1935,7 +1925,7 @@ static void bdx_setmulti(struct net_device *ndev)
 		}
 
 	} else {
-		/*DBG("only own mac %d\n", ndev->mc.count); */
+
 		rxf_val |= GMAC_RX_FILTER_AB;
 	}
 	WRITE_REG(priv, regGMAC_RXF_A, rxf_val);
@@ -2416,8 +2406,6 @@ static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 	}
 	/* One's complement of sum */
 
-	/*return ( (u16)(~sum)  ); */
-
 	return ((u16) (sum));
 
 }
@@ -2620,11 +2608,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 				bErr = bdx_rx_error(pkt, rxd_err, len);
 			}
 			if (bErr) {
-/*				char *pkt = ((char *)page_address(dm->page) +  dm->off); */
+
 /*				int i; */
-/*				ERR("RX: len=%d\n",len); */
-/*				for(i=0; i<len; i=i+16) ERR("%.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x ",(0xff&pkt[i]),(0xff&pkt[i+1]),(0xff&pkt[i+2]),(0xff&pkt[i+3]),(0xff&pkt[i+4]),(0xff&pkt[i+5]),(0xff&pkt[i+6]),(0xff&pkt[i+7]),(0xff&pkt[i+8]),(0xff&pkt[i+9]),(0xff&pkt[i+10]),(0xff&pkt[i+11]),(0xff&pkt[i+12]),(0xff&pkt[i+13]),(0xff&pkt[i+14]),(0xff&pkt[i+15])); */
-/*				ERR("\n"); */
+
 				WRN("rxd_err = 0x%x\n", rxd_err);
 				priv->net_stats.rx_errors++;
 				bdx_recycle_skb(priv, rxdd);
@@ -2654,10 +2640,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 				ERR("napi_get_frags failed\n");
 				break;
 			}
-			/* skb->len       = 0; */
-			/* skb->data_len  = 0; */
+
 			/* skb->truesize  = MAX_HEADER + 128 + */
-			/*                  sizeof(struct sk_buff); */
+
 			skb->ip_summed =
 			    (pkt_id ==
 			     0) ? CHECKSUM_NONE : CHECKSUM_UNNECESSARY;
@@ -2751,7 +2736,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 				   THE CURRENT SKB */
 
 				skb_reserve(skb2, NET_IP_ALIGN);
-				/*skb_put(skb2, len); */
+
 				pci_dma_sync_single_for_cpu(priv->pdev,
 							    dm->dma,
 							    rxf_fifo->m.pktsz,
@@ -3738,8 +3723,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 #endif
 #endif
 
-/*        bdx_ethtool_ops(ndev);  /* Ethtool interface * / */
-
 	/*
 	 * These fields are used for information purposes only,
 	 * so we use the same for all the ports on the board
@@ -3818,7 +3801,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	/* Initialize fifo sizes. */
 	priv->txd_size = 3;
 	priv->txf_size = 3;
-	/* priv->rxd_size = 2; */
+
 	priv->rxd_size = 3;
 	priv->rxf_size = 3;
 
@@ -3839,7 +3822,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 	ndev->hw_features |= ndev->features;
 #endif
-	/*bdx_hw_reset(priv); */
+
 	if (bdx_read_mac(priv)) {
 		ERR("load MAC address failed\n");
 		goto err_out_iomap;
@@ -3852,8 +3835,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	bdx_reset(priv);
 
 	/*Set GPIO[9:0] to output 0 */
-	/*WRITE_REG(priv, 0x51E0,0x30010004); // GPIO_O WR CMD */
-	/*WRITE_REG(priv, 0x51F0,0x0); */
+
 	WRITE_REG(priv, 0x51E0, 0x30010006);	/* GPIO_OE_ WR CMD */
 	WRITE_REG(priv, 0x51F0, 0x0);	/* GPIO_OE_ DATA */
 
@@ -4408,8 +4390,6 @@ static int bdx_get_eee(struct net_device *netdev, struct ethtool_eee *edata)
 		err = priv->phy_ops.get_eee(netdev, edata);
 	}
 
-/*  ecmd->phy_address = priv->port; */
-
 	return err;
 
 }
@@ -4503,11 +4483,6 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 	set_ethtool_ops_ext(netdev, &bdx_ethtool_ops_ext);
 #endif
 
-	/*struct bdx_priv *priv = netdev_priv(netdev); */
-
-	/*  bdx_ethtool_ops.set_settings      =priv->phy_ops.set_settings; */
-/*ERR("bdx_ethtool_ops.set_settings = %s",bdx_ethtool_ops.set_settings?"defined":" is 0"); */
-
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0) )
 #define SET_ETHTOOL_OPS(netdev, ops) ((netdev)->ethtool_ops = (ops))
 #endif /* >= 3.16.0 */
@@ -4541,7 +4516,7 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 #endif
 	unregister_netdev(ndev);
 	free_netdev(ndev);
-	/* bdx_hw_reset_direct(nic->regs); */
+
 	if (nic->irq_type == IRQ_MSI) {
 		pci_disable_msi(pdev);
 	}
@@ -4721,7 +4696,6 @@ static void bdx_print_phys(void)
 	    "",
 #endif
 	    bdx_pci_driver.suspend != NULL ? "in driver suspend" : "");
-/*		bdx_pci_driver.driver.pm != NULL ? "in driver suspend" : ""); */
 
 }
 

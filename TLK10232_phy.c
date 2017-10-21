@@ -197,7 +197,7 @@ int i2c_write_bit(struct bdx_priv *priv, int bit)
 	/* If SDA is high, check that nobody else is driving SDA */
 	if (bit)
 		if (read_SDA(priv) == 0) {
-			/*arbitration_lost(); */
+
 			ret = 1;
 		}
 	I2C_delay(priv);
@@ -502,7 +502,7 @@ int TLK10232_phy_config(struct bdx_priv *priv)
 int TLK10232_mdio_reset(struct bdx_priv *priv, int port, unsigned short phy)
 {
 	int regVal;
-	priv->sfp_mod_type = 0;	/*read_sfp_id(priv); */
+	priv->sfp_mod_type = 0;
 
 	/* Device reset */
 	BDX_MDIO_WRITE(priv, 0x1e, GLOBAL_CONTROL_1, 0x8610);
@@ -525,7 +525,7 @@ u32 TLK10232_get_link_speed(struct bdx_priv * priv)
 	u32 sfp_mod_type, speed;
 
 	sfp_mod_type = read_sfp_id(priv);
-	/*       ERR("TLK10232_get_link_speed  sfp_mod_type=%u\n",sfp_mod_type); */
+
 	if (priv->sfp_mod_type != sfp_mod_type) {
 		priv->sfp_mod_type = sfp_mod_type;
 		TLK10232_phy_config(priv);
@@ -567,7 +567,7 @@ u32 TLK10232_link_changed(struct bdx_priv * priv)
 			priv->link_loop_cnt = 0;
 			priv->sfp_mod_type = SFP_ABS;
 		}
-		/*DBG("TLK10232 no link, setting 1/5 sec timer\n"); */
+
 		WRITE_REG(priv, 0x5150, 1000000);	/* 1/5 sec timeout */
 	}
 
