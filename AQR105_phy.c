@@ -88,8 +88,6 @@ __init int AQR105_mdio_reset(struct bdx_priv *priv, int port,
 	u32 byteSize, dWordSize, bytePointer;
 	u16 msw = 0, lsw = 0, sd, sv;
 
-	ENTER;
-
 	BDX_MDIO_WRITE(priv, 0x1E, 0, 1 << 0xF);	/* Soft Reset */
 	msleep(10);
 	BDX_MDIO_WRITE(priv, 0x1E, 0, 0);	/* */
@@ -383,7 +381,6 @@ static int AQR105_get_link_speed(struct bdx_priv *priv)
 	u16 ActLnk_MSK = 0;
 	u16 sd, sv;
 
-	ENTER;
 	val = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 0xC810);
 	val = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 0xC810);
 /*DBG("AQR105 7.C810 = 0x%x\n", val); */
@@ -447,7 +444,7 @@ static int AQR105_get_link_speed(struct bdx_priv *priv)
 		}
 	}
 
-	RET(link);
+	return link;
 
 }
 
@@ -455,7 +452,6 @@ u32 AQR105_link_changed(struct bdx_priv *priv)
 {
 	u32 link, speed;
 
-	ENTER;
 	speed = AQR105_get_link_speed(priv);
 	DBG("AQR105_link_changed speed=%u priv->link_speed=%u\n", speed,
 	    priv->link_speed);
@@ -503,7 +499,7 @@ u32 AQR105_link_changed(struct bdx_priv *priv)
 		WRITE_REG(priv, 0x5150, timeout);
 	}
 
-	RET(link);
+	return link;
 
 }
 

@@ -116,8 +116,6 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
-	ENTER;
-
 	cmd->base.speed = priv->link_speed;
 	cmd->base.port = PORT_TP;
 	cmd->base.autoneg = AUTONEG_ENABLE;
@@ -141,7 +139,7 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 	memcpy(cmd->link_modes.advertising, priv->link_advertising,
 	       sizeof(cmd->link_modes.advertising));
 
-	RET(0);
+	return 0;
 
 }
 
@@ -154,8 +152,6 @@ int AQR105_set_link_ksettings(struct net_device *netdev,
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 	int rVal = 0;
-
-	ENTER;
 
 	priv->autoneg = cmd->base.autoneg;
 	if (priv->autoneg == AUTONEG_ENABLE) {
@@ -195,7 +191,7 @@ int AQR105_set_link_ksettings(struct net_device *netdev,
 		rVal = AQR105_set_speed(priv, cmd->base.speed);
 	}
 
-	RET(0);
+	return 0;
 
 }
 
