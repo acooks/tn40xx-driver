@@ -103,7 +103,7 @@ __init int AQR105_mdio_reset(struct bdx_priv *priv, int port,
 	BDX_MDIO_WRITE(priv, 4, 0xC440, 1);	/*Reset XAUI SerDes */
 	for (i = 3; i--;) {	/*Wait until XAUI Serdes reset done and clear */
 		val = bdx_mdio_read(priv, 4, port, 0xC440);
-		/*ERR("AQPHYXS RST 4.C440=%x loop =%u\n",val,i); */
+
 		if (!val)
 			break;
 		msleep(1);
@@ -127,7 +127,7 @@ __init int AQR105_mdio_reset(struct bdx_priv *priv, int port,
 	BDX_MDIO_WRITE(priv, r1, 0xC452, 1);	/*NVR Daisy Chain Disable */
 	BDX_MDIO_WRITE(priv, r1, 0xC441, 0);
 
-	val = 0;		/*bdx_mdio_read(priv, r1, port,0xC001); */
+	val = 0;
 	val |= 1;		/*upRunStall */
 	val |= 1 << 6;		/*upRunStallOverride */
 	BDX_MDIO_WRITE(priv, r1, 0xC001, val);
@@ -319,7 +319,7 @@ __init int AQR105_mdio_reset(struct bdx_priv *priv, int port,
 		val = bdx_mdio_read(priv, r1, port, 0xCC00);
 		if (val & (1 << 6))
 			break;
-/* ERR("1E.CC00.6 loop =%u\n",i); */
+
 	};
 	/*if(!(val&(1<<6))){ // Reset timeout
 	   ERR("AQR105 FW reset timeout 1E.CC00=%x\n",val);
@@ -383,13 +383,13 @@ static int AQR105_get_link_speed(struct bdx_priv *priv)
 
 	val = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 0xC810);
 	val = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 0xC810);
-/*DBG("AQR105 7.C810 = 0x%x\n", val); */
+
 	val = val >> 9;
 	val &= 0x1f;
 	if (val == 4) {		/* Link up */
 		val = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 0xC800);
 		val = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 0xC800);
-/*DBG("AQR105 7.c800 val=%x\n",val); */
+
 		val &= 0xF;
 		if ((val >> 1) > 0) {
 			sv = priv->subsystem_vendor;

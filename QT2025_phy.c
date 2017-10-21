@@ -40,7 +40,6 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 	int phy_id = 0, rev = 0;
 
 	phy_id = bdx_mdio_read(priv, 1, port, 0xD001);
-	/*  ERR("PHY_ID %x, port=%x\n", phy_id, port); */
 
 	switch (0xFF & (phy_id >> 8)) {
 	case 0xb3:
@@ -63,12 +62,12 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 		BDX_MDIO_WRITE(priv, 1, 0xC300, 0x0000);
 		BDX_MDIO_WRITE(priv, 1, 0xC302, 0x4);
 		BDX_MDIO_WRITE(priv, 1, 0xC319, 0x0038);
-		/*         BDX_MDIO_WRITE(priv, 1,0xC319,0x0088);  //1G */
+
 		BDX_MDIO_WRITE(priv, 1, 0xC31A, 0x0098);
 		BDX_MDIO_WRITE(priv, 3, 0x0026, 0x0E00);
-		/*         BDX_MDIO_WRITE(priv, 3,0x0027,0x08983);  //10G */
+
 		BDX_MDIO_WRITE(priv, 3, 0x0027, 0x0893);	/*10G */
-		/*         BDX_MDIO_WRITE(priv, 3,0x0027,0x01092);    //1G     //3092 */
+
 		BDX_MDIO_WRITE(priv, 3, 0x0028, 0xA528);
 		BDX_MDIO_WRITE(priv, 3, 0x0029, 0x03);
 		BDX_MDIO_WRITE(priv, 1, 0xC30A, 0x06E1);
