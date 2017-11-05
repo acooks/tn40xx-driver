@@ -137,9 +137,6 @@ extern int g_dbg;
 
 /*				F T R A C E */
 #if defined(FTRACE)
-extern int g_ftrace;
-#define FTRACE_ON		g_ftrace = 1
-#define FTRACE_OFF		g_ftrace = 0
 
 #else
 #define FTRACE_ON
