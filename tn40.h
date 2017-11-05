@@ -114,7 +114,7 @@ extern int g_memLog;
 #if defined(TN40_DEBUG)
 extern int g_dbg;
 #define DBG_ON								g_dbg = 1
-#define DBG1_ON								g_dbg = 2
+
 #define DBG_OFF								g_dbg = 0
 #else
 #define DBG_ON
@@ -123,16 +123,16 @@ extern int g_dbg;
 
 #if defined(TN40_DEBUG) && defined(TN40_MEMLOG)
 #define DBG(fmt, args...)					if (g_memLog) 	  memLog(fmt, ##args); else if (g_dbg) 	 printk(KERN_ERR  BDX_DRV_NAME": ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
-#define DBG1(fmt, args...)		            if (g_memLog > 1) memLog(fmt, ##args); else if (g_dbg > 1) printk(KERN_ERR  BDX_DRV_NAME": ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
+
 #elif defined(TN40_MEMLOG)
 #define DBG(fmt, args...)					if (g_memLog) 	  memLog(fmt, ##args)
-#define DBG1(fmt, args...)		            if (g_memLog > 1) memLog(fmt, ##args)
+
 #elif defined(TN40_DEBUG)
 #define	DBG(fmt, args...)					if (g_dbg) 		  printk(KERN_ERR  BDX_DRV_NAME": ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
-#define DBG1(fmt, args...)		            if (g_dbg > 1)    printk(KERN_ERR  BDX_DRV_NAME": ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
+
 #else
 #define DBG(fmt, args...)
-#define DBG1(fmt, args...)
+
 #endif
 
 /*				F T R A C E */
