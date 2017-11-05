@@ -52,6 +52,10 @@ sed -i 's|/\*\s*.*->.*=.*;.*\*/||g' *.c *.h
 sed -i 's|/\*\s*.*=.*->.*;.*\*/||g' *.c *.h
 
 
+# remove unused g_ftrace variable
+sed -i 's|\(.*g_ftrace.*\)||g' *.{c,h}
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
