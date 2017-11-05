@@ -56,6 +56,12 @@ sed -i 's|/\*\s*.*=.*->.*;.*\*/||g' *.c *.h
 sed -i 's|\(.*g_ftrace.*\)||g' *.{c,h}
 
 
+# remove unused DBG1 macro
+sed -i 's|\(#define DBG1.*\)||g' tn40.h
+# confirm that it really is unsused and gone
+! grep -Iq DBG1 *.{c,h} || echo 'unexpected DBG1 macro remaining.' && false
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
