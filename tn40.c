@@ -184,7 +184,7 @@ static int bdx_init_rss(struct bdx_priv *priv)
 int g_dbg = 0;
 #endif
 #if defined(TN40_FTRACE)
-int g_ftrace = 0;
+
 #endif
 #if defined(TN40_REGLOG)
 int g_regLog = 0;
@@ -269,7 +269,7 @@ void dbg_printPBL(struct pbl *pbl)
 #endif
 
 #if defined(FTRACE)
-int g_ftrace = 0;
+
 #endif
 
 #ifdef TN40_THUNDERBOLT
