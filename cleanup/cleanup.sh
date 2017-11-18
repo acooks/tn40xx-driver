@@ -2,6 +2,17 @@
 
 set -e
 
+# Use the kernel's scripts/Lindent utility
+if [ -z "$LINDENT" -o ! -x "$LINDENT" ] ; then
+	echo " You need to set the LINDENT environment variable to specify where the Lindent script is (Hint: in the kernel sources at scripts/Lindent)"
+	exit 1
+fi
+
+# Run Lindent at the start of cleanup, so that the regexes below are applied to
+# a predictable style of code.
+# Run Lindent twice, because the operation is unfortunately not idempotent
+# after only a single run (but is after two runs).
+${LINDENT} *.c *.h ; ${LINDENT} *.c *.h
 
 # Trim trailing whitespace
 sed -i 's|\s*$||g' *.c *.h
@@ -62,15 +73,18 @@ sed -i 's|\(#define DBG1.*\)||g' tn40.h
 (! grep -Iq DBG1 *.{c,h}) || (echo 'unexpected DBG1 macro remaining.' && false)
 
 
+# remove redundant return at end of void functions
+# look for one level of tab indentation to determine function scope, instead of
+# early returns from block scope. It's ugly, but semantically-important
+# whitespace works for python and Lindent ensures that the indentation is
+# consistent here.
+sed -i 's|^\treturn;.*||g' *.c
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
-# Use the kernel's scripts/Lindent utility
-if [ -z "$LINDENT" -o ! -x "$LINDENT" ] ; then
-	echo " You need to set the LINDENT environment variable to specify where the Lindent script is (Hint: in the kernel sources at scripts/Lindent)"
-	exit 1
-fi
-
+# Run Lindent again at the end, because the regexes above affect the format.
 # Run Lindent twice, because the operation is unfortunately not idempotent
 # after only a single run (but is after two runs).
 ${LINDENT} *.c *.h ; ${LINDENT} *.c *.h
