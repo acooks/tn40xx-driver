@@ -81,6 +81,21 @@ sed -i 's|\(#define DBG1.*\)||g' tn40.h
 sed -i 's|^\treturn;.*||g' *.c
 
 
+# remove unused FTRACE_ON and FTRACE_OFF macros
+sed -i 's|#define FTRACE_ON$||g' *.c *.h
+sed -i 's|#define FTRACE_OFF$||g' *.c *.h
+# For these multi-line matches, it's much simpler to use perl...
+# remove empty TN40_FTRACE block
+perl -0777 -i -pe 's|#if defined\(TN40_FTRACE\)\s*\n*\s*#endif||g' *.c *.h
+# remove empty FTRACE block
+perl -0777 -i -pe 's|#if defined\(FTRACE\)\s*\n*\s*#endif||g' *.c *.h
+# remove empty FTRACE with empty else block
+perl -0777 -i -pe 's|#if defined\(FTRACE\)\s*\n*\s*#else\s*\n*\s*#endif||g' *.c *.h
+# finally, remove the unused FTRACE definition
+sed -i 's|#define FTRACE||g' *.c *.h
+# remove the comment
+sed -i 's|/\*\s*F T R A C E\s*\*/||g' *.c *.h
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
