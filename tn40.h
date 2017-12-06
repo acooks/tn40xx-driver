@@ -82,7 +82,7 @@
 #define BDX_ASSERT(x)
 
 #define TN40_DEBUG
-#define FTRACE
+
 /*#define REGLOG */
 #define WARNING
 
@@ -132,15 +132,6 @@ extern int g_dbg;
 
 #else
 #define DBG(fmt, args...)
-
-#endif
-
-/*				F T R A C E */
-#if defined(FTRACE)
-
-#else
-#define FTRACE_ON
-#define FTRACE_OFF
 
 #endif
 
