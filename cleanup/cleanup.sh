@@ -101,6 +101,10 @@ sed -i 's|/\*\s*F T R A C E\s*\*/||g' *.c *.h
 sed -i 's|\r| |g' *.c *.h
 
 
+# rename DRB_OBJS to DRV_OBJS as in 0.3.16.15
+sed -i 's|DRB_OBJS|DRV_OBJS|g' Makefile
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
