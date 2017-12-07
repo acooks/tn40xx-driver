@@ -20,21 +20,21 @@ JUMO_OBJS     := tn40.o  \
                  AQR105_phy.o AQR105_phy_Linux.o
 JUMBO_PHYS    := -DPHY_QT2025 -DPHY_TLK10232 -DPHY_AQR105
 DRV_NAME      := tn40xx
-DRB_OBJS      := tn40.o CX4.o CX4_Linux.o
+DRV_OBJS      := tn40.o CX4.o CX4_Linux.o
 RESUME ?= YES
 
 ifeq ($(QT),YES)
-	DRB_OBJS += QT2025_phy.o QT2025_phy_Linux.o
+	DRV_OBJS += QT2025_phy.o QT2025_phy_Linux.o
 	OPT_PHYS += -DPHY_QT2025
 endif
 
 ifeq ($(TL),YES)
-	DRB_OBJS += TLK10232_phy.o TLK10232_phy_Linux.o
+	DRV_OBJS += TLK10232_phy.o TLK10232_phy_Linux.o
 	OPT_PHYS += -DPHY_TLK10232
 endif
 
 ifeq ($(AQ),YES)
-	DRB_OBJS += AQR105_phy.o AQR105_phy_Linux.o
+	DRV_OBJS += AQR105_phy.o AQR105_phy_Linux.o
 	OPT_PHYS += -DPHY_AQR105
 endif
 #
@@ -55,7 +55,7 @@ endif
 # No selected PHYs default to Jumbo driver
 #
 ifndef OPT_PHYS
-	DRB_OBJS += $(JUMO_OBJS)
+	DRV_OBJS += $(JUMO_OBJS)
 	EXTRA_CFLAGS += $(JUMBO_PHYS)	
 else
 	EXTRA_CFLAGS += $(OPT_PHYS)	
@@ -64,18 +64,18 @@ endif
 # Trace
 #         
 ifeq ($(TRACE),YES)
-	DRB_OBJS += trace.o
+	DRV_OBJS += trace.o
 	EXTRA_CFLAGS += -D_TRACE_LOG_
 endif
 #
 # memLog
 #         
 ifeq ($(MEMLOG),YES)
-	DRB_OBJS += memLog.o
+	DRV_OBJS += memLog.o
 	EXTRA_CFLAGS += -DTN40_MEMLOG
 endif
 obj-m += $(DRV_NAME).o
-$(DRV_NAME)-objs := $(DRB_OBJS)
+$(DRV_NAME)-objs := $(DRV_OBJS)
 #
 # Check existance of kernel build directory
 #
