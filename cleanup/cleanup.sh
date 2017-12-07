@@ -96,6 +96,11 @@ sed -i 's|#define FTRACE||g' *.c *.h
 # remove the comment
 sed -i 's|/\*\s*F T R A C E\s*\*/||g' *.c *.h
 
+
+# remove \r characters.
+sed -i 's|\r| |g' *.c *.h
+
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
