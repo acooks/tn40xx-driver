@@ -63,7 +63,7 @@ Some specific problems are:
 - mixed C-style and C++ style comments
 - single lines of commented code smells
 - long lines
-- *most importantly, it doesn't match the Linux kernel style, which prevents this driver from ever being merged into the upstream Linux kernel*
+- ignoring Linux kernel style
 
 
 The cleanup transformation MUST:
@@ -90,6 +90,19 @@ To generate the diff, use something like this:
 ```
 git diff -D cleanup/v0.3.6.14.1 cleanup/v0.3.6.14.3
 ```
+
+## vendor-drop/v0.3.6.15
+- The Marvell PHY control that was removed in 0.3.6.14.3 has reappeared (without the required firmware/initialisation data blobs!) and the 'Marvell' name has been replaced with 'Pele' for what could only be trademark lawyer nonsense.
+- Added support for "Mustang-200 10GbE Ethernet Adapter"
+- More magical _Mike fix_ copy pasta
+- Some timer cruft was removed
+
+Plus vendor's release_notes:
+- New build method for Marvell PHYs. Please consult the Readme file
+- Improved startup procudure for "Phyless" CX4 mode
+- Dynamic advertising of MACA for RX flow control
+- Support for IEI SVID/SDID added
+- Improved memory allocation for memory limited or fragmented applications
 
 ## vendor-drop/v0.3.6.14.3
 - Removed support for Marvell PHYs, which removes support for the following NICs:
