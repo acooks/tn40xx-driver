@@ -13,9 +13,8 @@
 
 /* ioctl ops */
 
-enum
-{
-    OP_INFO,
+enum {
+	OP_INFO,
 	OP_READ_REG,
 	OP_WRITE_REG,
 	OP_MDIO_READ,
@@ -28,18 +27,16 @@ enum
 	OP_MEMLOG_DMESG,
 	OP_MEMLOG_PRINT,
 };
-enum
-{
-	DBG_NONE    = 0,
+enum {
+	DBG_NONE = 0,
 	DBG_SUSPEND = 1,
-	DBG_RESUME  = 2,
+	DBG_RESUME = 2,
 };
 #define IOCTL_DATA_SIZE		(3)
 
-typedef struct _tn40_ioctl_
-{
-	uint 	data[IOCTL_DATA_SIZE];
-	char	*buf;
+typedef struct _tn40_ioctl_ {
+	uint data[IOCTL_DATA_SIZE];
+	char *buf;
 } tn40_ioctl_t;
 
 #endif /* _TN40XX_IOCTL_H */
