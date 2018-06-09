@@ -104,6 +104,21 @@ sed -i 's|\r| |g' *.c *.h
 # rename DRB_OBJS to DRV_OBJS as in 0.3.16.15
 sed -i 's|DRB_OBJS|DRV_OBJS|g' Makefile
 
+# replace DBG(...) macro with pr_debug(...)
+sed -i 's|\(\s\+\)\(DBG(\)|\1pr_debug(|g' *.c
+sed -i 's|#define\(.*\)DBG$|#define\1pr_debug|g' *.c *.h
+# remove unused DBG macro
+sed -i 's|^\(#define\s\+DBG(.*\)||g' tn40.h
+
+# replace MSG(...) macro with pr_info(...)
+sed -i 's|\(\s\+\)\(MSG(\)|\1pr_info(|g' *.c
+# remove unused MSG macro
+sed -i 's|\(#define\s\+MSG(.*\)||g' tn40.h
+
+# remove unused ERR macro
+sed -i 's|\(#define\s\+ERR(.*\)||g' tn40.h
+# replace ERR(...) macro with pr_err(...)
+sed -i 's|\(\s\+\)\(ERR(\)|\1pr_err(|g' *.c *.h
 
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
