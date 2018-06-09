@@ -78,7 +78,7 @@ sed -i 's|\(#define DBG1.*\)||g' tn40.h
 # early returns from block scope. It's ugly, but semantically-important
 # whitespace works for python and Lindent ensures that the indentation is
 # consistent here.
-sed -i 's|^\treturn;.*||g' *.c
+sed -i 's|^\treturn\s*;.*||g' *.c
 
 
 # remove unused FTRACE_ON and FTRACE_OFF macros
