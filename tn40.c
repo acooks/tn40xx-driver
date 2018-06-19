@@ -78,6 +78,8 @@ static struct bdx_device_descr bdx_dev_tbl[] = {
 	     "TN9510 10GBase-T/NBASE-T Ethernet Adapter"),
 	LDEV(TEHUTI_VID, 0x4025, 0x8102, 1, 1, AQR105, NA,
 	     "Edimax 10 Gigabit Ethernet PCI Express Adapter"),
+	LDEV(PROMISE_VID, 0x7203, 0x7203, 1, 1, AQR105, NA,
+	     "Promise SANLink3 T1 10 Gigabit Ethernet Adapter"),
 #endif
 	{ 0 }
 };
@@ -116,6 +118,7 @@ static struct pci_device_id bdx_pci_tbl[] = {
 	{ TEHUTI_VID, 0x4025, DLINK_VID, 0x2900, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4025, TEHUTI_VID, 0x3015, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4025, EDIMAX_VID, 0x8102, 0, 0, 0 },
+	{ PROMISE_VID, 0x7203, PROMISE_VID, 0x7203, 0, 0, 0 },
 #endif
 	{ 0 }
 };
