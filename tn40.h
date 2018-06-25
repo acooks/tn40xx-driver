@@ -111,7 +111,7 @@ extern int g_memLog;
 #define memLogPrint()
 #endif
 /*                              D E B U G */
-#define	STRING_FMT							"%s"
+
 #if defined(TN40_DEBUG)
 extern int g_dbg;
 #define DBG_ON								g_dbg = 1

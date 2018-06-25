@@ -90,11 +90,10 @@ __init int AQR105_mdio_reset(struct bdx_priv *priv, int port,
 
 	BDX_MDIO_WRITE(priv, 0x1E, 0, 1 << 0xF);	/* Soft Reset */
 	msleep(10);
-	BDX_MDIO_WRITE(priv, 0x1E, 0, 0);	/* */
-
+	BDX_MDIO_WRITE(priv, 0x1E, 0, 0);
 	BDX_MDIO_WRITE(priv, 0x1E, 0xC001, 1 << 0xF);	/* uP Reset */
 	msleep(10);
-	BDX_MDIO_WRITE(priv, 0x1E, 0xC001, 0);	/* */
+	BDX_MDIO_WRITE(priv, 0x1E, 0xC001, 0);
 	msleep(1);
 
 	val1 = bdx_mdio_read(priv, r1, port, 0xC441);

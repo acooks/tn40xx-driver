@@ -283,7 +283,7 @@ __init int MV88X3310_mdio_reset(struct bdx_priv *priv, int port,
 	val = bdx_mdio_read(priv, 1, port, 3);
 	val1 = val & 0x000F;	/* revNo */
 	val = (val & (MANUF_MODEL_NUM_MASK << MANUF_MODEL_NUM_BIT_POS)) >> MANUF_MODEL_NUM_BIT_POS;	/* modelNo */
-	pr_debug(STRING_FMT " modelNo = %d revNo %d\n", PHY_NAME, val, val1);
+	pr_debug("%s modelNo = %d revNo %d\n", PHY_NAME, val, val1);
 	do {
 		val = bdx_mdio_read(priv, 31, port, 0xF008);
 		BDX_MDIO_WRITE(priv, 31, 0xF008, (val | 1 << 5));
@@ -291,14 +291,13 @@ __init int MV88X3310_mdio_reset(struct bdx_priv *priv, int port,
 		BDX_MDIO_WRITE(priv, 31, 0xF001, (val | 1 << 12));
 		msleep(250);
 		if ((val = bdx_mdio_read(priv, 1, port, 0xC050)) != 0x000A) {
-			pr_err(STRING_FMT
-			       " Initialization Error. Expected 0x000A, read 0x%04X\n",
-			       PHY_NAME, (unsigned)val);
+			pr_err
+			    ("%s Initialization Error. Expected 0x000A, read 0x%04X\n",
+			     PHY_NAME, (unsigned)val);
 			rVal = -1;
 			break;
 		} else {
-			pr_debug(STRING_FMT " Initializing data...\n",
-				 PHY_NAME);
+			pr_debug("%s Initializing data...\n", PHY_NAME);
 		}
 		val = bdx_mdio_read(priv, 3, port, 0xD0F3);
 		BDX_MDIO_WRITE(priv, 3, 0xD0F0, 0);
@@ -309,19 +308,19 @@ __init int MV88X3310_mdio_reset(struct bdx_priv *priv, int port,
 			    (val & 0x00ff) + ((val & 0xff00) >> 8);
 			BDX_MDIO_WRITE(priv, 3, 0xD0F2, val);
 		}
-		pr_debug(STRING_FMT " loaded %d 16bit words\n", PHY_NAME,
+		pr_debug("%s loaded %d 16bit words\n", PHY_NAME,
 			 phy_initdata_size);
 		val = bdx_mdio_read(priv, 1, port, 0xC050);
 		BDX_MDIO_WRITE(priv, 1, 0xC050, (val | (1 << 6)));
 		msleep(500);
 		if (!((val = bdx_mdio_read(priv, 1, port, 0xC050)) & (1 << 4))) {
-			pr_err(STRING_FMT
-			       " initdata not applied. Expected bit 4 to be 1, read 0x%04X\n",
-			       PHY_NAME, (unsigned)val);
+			pr_err
+			    ("%s initdata not applied. Expected bit 4 to be 1, read 0x%04X\n",
+			     PHY_NAME, (unsigned)val);
 			rVal = -1;
 			break;
 		} else {
-			pr_info(STRING_FMT " initdata applied\n", PHY_NAME);
+			pr_info("%s initdata applied\n", PHY_NAME);
 		}
 		val = bdx_mdio_read(priv, 3, port, 0xD0F3);
 		if ((phy_initdata[4] != swab16(~expected_value))
@@ -335,7 +334,7 @@ __init int MV88X3310_mdio_reset(struct bdx_priv *priv, int port,
 		}
 		val = bdx_mdio_read(priv, 1, port, 0xc011);
 		val1 = bdx_mdio_read(priv, 1, port, 0xc012);
-		pr_info(STRING_FMT " I/D version is %d.%d.%d.%d\n", PHY_NAME,
+		pr_info("%s I/D version is %d.%d.%d.%d\n", PHY_NAME,
 			((val & 0xff00) >> 8), (val & 0x00ff),
 			((val1 & 0xff00) >> 8), (val1 & 0x00ff));
 		val = bdx_mdio_read(priv, 1, port, 0);
@@ -347,13 +346,12 @@ __init int MV88X3310_mdio_reset(struct bdx_priv *priv, int port,
 			      bdx_mdio_read(priv, 1, port, 0)) & (1 << 15))) {
 				break;
 			}
-			pr_debug(STRING_FMT
-				 " waiting for reset complete 0x%x\n", PHY_NAME,
-				 val);
+			pr_debug("%s waiting for reset complete 0x%x\n",
+				 PHY_NAME, val);
 			msleep(10);
 		}
 		if (j == SW_RESET_COUNT) {
-			pr_err(STRING_FMT " SW reset was not completed 0x%x\n",
+			pr_err("%s SW reset was not completed 0x%x\n",
 			       PHY_NAME, val);
 		}
 		MV88X3310_set_Reset_values(priv);
@@ -389,7 +387,7 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 	int resolved, duplex, speed, link = 0;
 
 	status = bdx_mdio_read(priv, 7, priv->phy_mdio_port, 1);
-	pr_debug(STRING_FMT " 7.1 = 0x%x\n", PHY_NAME, status);
+	pr_debug("%s 7.1 = 0x%x\n", PHY_NAME, status);
 
 	PHY_MDIO_READ(priv, 3, 0x8011);
 	PHY_MDIO_READ(priv, 3, 0x8011);
@@ -400,7 +398,7 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 		duplex = status & (1 << 13);
 		speed = (status & 0xc000) >> 14;
 		if (resolved) {
-			pr_debug(STRING_FMT " speed %d " STRING_FMT " duplex\n",
+			pr_debug("%s speed %d %s duplex\n",
 				 PHY_NAME, speed, duplex ? "full" : "half");
 			switch (speed) {
 			case SPEED_RES_NBASE:
@@ -411,8 +409,7 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 					MV88X3310_set_rate_adapt(priv,
 								 PHY_SPEED_HIGH);
 					MV88X3310_led(priv, PHY_LED_AMBER);
-					pr_debug(STRING_FMT
-						 " 10G link detected\n",
+					pr_debug("%s 10G link detected\n",
 						 PHY_NAME);
 					break;
 
@@ -421,8 +418,7 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 					MV88X3310_set_rate_adapt(priv,
 								 PHY_SPEED_NBASET);
 					MV88X3310_led(priv, PHY_LED_GREEN);
-					pr_debug(STRING_FMT
-						 " 5G link detected\n",
+					pr_debug("%s 5G link detected\n",
 						 PHY_NAME);
 					break;
 
@@ -431,15 +427,14 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 					MV88X3310_set_rate_adapt(priv,
 								 PHY_SPEED_NBASET);
 					MV88X3310_led(priv, PHY_LED_GREEN);;
-					pr_debug(STRING_FMT
-						 " 2.5G link detected\n",
+					pr_debug("%s 2.5G link detected\n",
 						 PHY_NAME);
 					break;
 
 				default:
-					pr_debug(STRING_FMT
-						 " internal error - unknown link speed value (0x%x) !\n",
-						 PHY_NAME, status);
+					pr_debug
+					    ("%s internal error - unknown link speed value (0x%x) !\n",
+					     PHY_NAME, status);
 					break;
 				}
 				break;
@@ -448,28 +443,25 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 				link = SPEED_1000X;
 				MV88X3310_set_rate_adapt(priv, PHY_SPEED_LOW);
 				MV88X3310_led(priv, PHY_LED_GREEN);
-				pr_debug(STRING_FMT " 1G link detected\n",
-					 PHY_NAME);
+				pr_debug("%s 1G link detected\n", PHY_NAME);
 				break;
 
 			case SPEED_RES_100M:
 				link = SPEED_100X;
 				MV88X3310_set_rate_adapt(priv, PHY_SPEED_LOW);
 				MV88X3310_led(priv, PHY_LED_OFF);
-				pr_debug(STRING_FMT " 100M link detected\n",
-					 PHY_NAME);
+				pr_debug("%s 100M link detected\n", PHY_NAME);
 				break;
 
 			default:
-				pr_debug(STRING_FMT
-					 " internal error - unknown link speed value (0x%x) !\n",
-					 PHY_NAME, status);
+				pr_debug
+				    ("%s internal error - unknown link speed value (0x%x) !\n",
+				     PHY_NAME, status);
 				MV88X3310_led(priv, PHY_LED_OFF);
 				break;
 			}
 		} else {
-			pr_debug(STRING_FMT
-				 " auto negotiation in progress...\n",
+			pr_debug("%s auto negotiation in progress...\n",
 				 PHY_NAME);
 			MV88X3310_led(priv, PHY_LED_OFF);
 
@@ -478,7 +470,7 @@ static int MV88X3310_get_link_speed(struct bdx_priv *priv)
 	} else {
 		if (++priv->errmsg_count < MAX_ERRMSGS) {
 			MV88X3310_led(priv, PHY_LED_OFF);
-			pr_debug(STRING_FMT " link down.\n", PHY_NAME);
+			pr_debug("%s link down.\n", PHY_NAME);
 		}
 	}
 
@@ -495,7 +487,7 @@ u32 MV88X3310_link_changed(struct bdx_priv * priv)
 	if (speed != (u32) priv->link_speed) {
 		switch (speed) {
 		case SPEED_10000:
-			pr_debug(STRING_FMT " 10G link detected\n", PHY_NAME);
+			pr_debug("%s 10G link detected\n", PHY_NAME);
 #ifdef _EEE_
 			pr_err("DBG_EEE eee_enabled=%d\n", priv->eee_enabled);
 			if (priv->eee_enabled) {
@@ -509,25 +501,25 @@ u32 MV88X3310_link_changed(struct bdx_priv * priv)
 #endif
 			break;
 		case SPEED_1000:
-			pr_debug(STRING_FMT " 1G link detected\n", PHY_NAME);
+			pr_debug("%s 1G link detected\n", PHY_NAME);
 			break;
 		case SPEED_1000X:
-			pr_debug(STRING_FMT " 1GX link detected\n", PHY_NAME);
+			pr_debug("%s 1GX link detected\n", PHY_NAME);
 			break;
 		case SPEED_5000:
-			pr_debug(STRING_FMT " 5G link detected\n", PHY_NAME);
+			pr_debug("%s 5G link detected\n", PHY_NAME);
 			break;
 		case SPEED_2500:
-			pr_debug(STRING_FMT " 2.5G link detected\n", PHY_NAME);
+			pr_debug("%s 2.5G link detected\n", PHY_NAME);
 			break;
 		case SPEED_100:
-			pr_debug(STRING_FMT " 100M link detected\n", PHY_NAME);
+			pr_debug("%s 100M link detected\n", PHY_NAME);
 			break;
 		case SPEED_100X:
-			pr_debug(STRING_FMT " 100MX link detected\n", PHY_NAME);
+			pr_debug("%s 100MX link detected\n", PHY_NAME);
 			break;
 		default:
-			pr_debug(STRING_FMT " link down.\n", PHY_NAME);
+			pr_debug("%s link down.\n", PHY_NAME);
 			break;
 		}
 		bdx_speed_changed(priv, speed);
@@ -541,15 +533,14 @@ u32 MV88X3310_link_changed(struct bdx_priv * priv)
 			if (priv->link_loop_cnt++ > LINK_LOOP_MAX) {
 				bdx_speed_changed(priv, 0);
 				priv->link_loop_cnt = 0;
-				pr_debug(STRING_FMT
-					 " trying to recover link after %d tries\n",
-					 PHY_NAME, LINK_LOOP_MAX);
+				pr_debug
+				    ("%s trying to recover link after %d tries\n",
+				     PHY_NAME, LINK_LOOP_MAX);
 			}
 		} else {
 			timeout = 5000000;	/* 1 sec */
 		}
-		pr_debug(STRING_FMT
-			 " link = 0x%x speed = 0x%x setting %d timer\n",
+		pr_debug("%s link = 0x%x speed = 0x%x setting %d timer\n",
 			 PHY_NAME, link, speed, timeout);
 		WRITE_REG(priv, 0x5150, timeout);
 	}

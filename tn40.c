@@ -952,7 +952,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	u32 isr;
 
-/* */
 	isr = READ_REG(priv, regISR_MSK0);
 
 	if (unlikely(!isr)) {
