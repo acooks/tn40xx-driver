@@ -1484,4 +1484,4 @@ static u32 s_firmLoad[] __initdata =
 	0xf0002, 0x807187c4, 0x3d, 0xf780006f,
 };
 
-#endif /*   */
+#endif

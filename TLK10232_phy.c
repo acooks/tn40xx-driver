@@ -138,8 +138,8 @@ int i2c_start_cond(struct bdx_priv *priv, int I2C_started)
 	clear_SDA(priv);
 	I2C_delay(priv);
 	clear_SCL(priv);
-	LOG_I2C("TLK10232 i2c_start_cond " STRING_FMT
-		"======================\n", ret ? "Failed " : "OK");
+	LOG_I2C("TLK10232 i2c_start_cond " "%s======================\n",
+		ret ? "Failed " : "OK");
 
 	return ret;
 
@@ -194,8 +194,7 @@ int i2c_write_bit(struct bdx_priv *priv, int bit)
 		}
 	I2C_delay(priv);
 	clear_SCL(priv);
-	LOG_I2C("TLK10232 i2c_write_bit " STRING_FMT "\n",
-		ret ? "failed" : "OK");
+	LOG_I2C("TLK10232 i2c_write_bit %s\n", ret ? "failed" : "OK");
 
 	return ret;
 
@@ -551,7 +550,7 @@ u32 TLK10232_link_changed(struct bdx_priv * priv)
 	if (link) {
 		priv->link_speed = TLK10232_get_link_speed(priv);
 		link = priv->link_speed;
-		pr_debug("TLK10232 link speed is " STRING_FMT "\n",
+		pr_debug("TLK10232 link speed is %s\n",
 			 (priv->link_speed == SPEED_10000) ? "10G" : "1G");
 		WRITE_REG(priv, 0x5150, 0);	/*  stop timer */
 	} else {
