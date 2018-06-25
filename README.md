@@ -39,7 +39,7 @@ This repo makes extensive use of branches to organise the changes to the vendor 
 - `cleanup/v0.3.6.14.3`
 - `topic/topic/feature/add-Promise-SANLink3-T1`
 
-The branching strategy is [described in the documentation](docs/branching.md).
+The branching strategy is [described in the documentation](docs/branches.md).
 
 # Changes between vendor releases
 
