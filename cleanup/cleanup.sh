@@ -126,6 +126,11 @@ sed -i 's|" STRING_FMT "|%s|g' *.c *.h
 sed -i 's|STRING_FMT\s\+"|"%s|g' *.c *.h
 perl -0777 -i -pe 's|STRING_FMT\s*\n\s*"|"%s|g' *.c *.h
 
+# remove single line empty comments
+perl -0777 -i -pe 's|/\*\s*\*/\n||g' *.c *.h
+# remove inline empty comments
+sed -i 's|/\*\s*\*/||g' *.c *.h
+
 # Insert new cleanup steps above this comment.
 # Keep Lindent as the last step.
 
