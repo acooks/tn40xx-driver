@@ -45,3 +45,8 @@ The branching strategy is [described in the documentation](docs/branches.md).
 
 See  [vendor-diffs.md](docs/vendor-diffs.md).
 
+# Thanks
+
+To the following people who have contributed to this project - thank you!
+- Jean-Christophe Heger
+- Nickolai Zeldovich
