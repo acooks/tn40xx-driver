@@ -8,6 +8,16 @@ To generate the diff, use something like this:
 git diff -D cleanup/v0.3.6.15 cleanup/v0.3.6.16.1
 ```
 
+## vendor-drop/v0.3.6.17
+- AQR105 PHY firmware blob updated from v2.b.e-798 to v2.c.7-880
+- Add QNAP's TN9710P SVID/SDID (uses MV88X3310 PHY)
+- Add LR-Link LREC6860BT SVID/SDID (uses MV88X3310 PHY)
+- Add LR-Link LREC6860AF SVID/SDID (uses TLK10232 PHY)
+- QNAP LED support to MV88X3310 PHY driver
+- Bump expected MV88E2010 and MV88X3310 firmware blob version from `0_3_3_0_9374` to `0_3_4_0_9445`
+- PCI IRQ MSI initialisation changed
+- Add device shutdown callback
+
 ## vendor-drop/v0.3.6.16-startech
 - Startech OEM driver contains Marvell firmware files missing from vendor-drop/v0.3.6.16.
 
