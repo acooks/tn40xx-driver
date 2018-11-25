@@ -35,8 +35,8 @@ While upstreaming is the ultimate goal of this project, some systems already rel
 
 This repo makes extensive use of branches to organise the changes to the vendor driver. For example,
 - `release/tn40xx-001`
-- `vendor-drop/v0.3.6.14.3`
-- `cleanup/v0.3.6.14.3`
+- `vendor-drop/v0.3.6.17`
+- `cleanup/v0.3.6.17`
 - `topic/topic/feature/add-Promise-SANLink3-T1`
 
 The branching strategy is [described in the documentation](docs/branches.md).
@@ -50,3 +50,4 @@ See  [vendor-diffs.md](docs/vendor-diffs.md).
 To the following people who have contributed to this project - thank you!
 - Jean-Christophe Heger
 - Nickolai Zeldovich
+- Patrick Heffernan
