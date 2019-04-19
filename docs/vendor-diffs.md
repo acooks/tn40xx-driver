@@ -8,6 +8,11 @@ To generate the diff, use something like this:
 git diff -D cleanup/v0.3.6.15 cleanup/v0.3.6.16.1
 ```
 
+## vendor-drop/v0.3.6.17.1
+- Fix compilation error under RHEL 8
+- Change default installation folder as required by RHEL 8
+- Fix kernel 4.20 compilation error (deprecated ethtool_ops.[gs]et_settings)
+
 ## vendor-drop/v0.3.6.17
 - AQR105 PHY firmware blob updated from v2.b.e-798 to v2.c.7-880
 - Add QNAP's TN9710P SVID/SDID (uses MV88X3310 PHY)
