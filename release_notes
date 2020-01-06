@@ -1,0 +1,152 @@
+Supported Cards:
+================
+
+VID /DID /SVID/SDID	Interface			Print Name
+==================================================================
+1fc9/4020/1fc9/3015	CX4 				"TN9030 10GbE CX4 Ethernet Adapter"
+1fc9/4020/180c/2040	CX4 				"IEI Mustang-200 10GbE Ethernet Adapter"
+1fc9/4022/1fc9/3015	SFP+ APM QT2025 		"TN9310 10GbE SFP+ Ethernet Adapter"
+1fc9/4022/1186/4d00	SFP+ APM QT2025			"D-Link DXE-810S 10GbE SFP+ Ethernet Adapter"
+1fc9/4022/1043/8709	SFP+ APM QT2025			"ASUS XG-C100F 10GbE SFP+ Ethernet Adapter"
+1fc9/4022/1432/8103	SFP+ APM QT2025			"Edimax 10 Gigabit Ethernet SFP+ PCI Express Adapter"
+1fc9/4024/1fc9/3015	10GBASE-T Pele MV88X3110	"TN9210 10GBase-T Ethernet Adapter"
+1fc9/4025/1fc9/3015	NBASE-T Aquantia AQR105		"TN9510 10GBase-T/NBASE-T Ethernet Adapter"
+1fc9/4025/1186/2900	10GBASE-T Aquantia AQ2104	"D-Link DXE-810T 10GBase-T Ethernet Adapter"
+1fc9/4025/1432/8102	NBASE-T Aquantia AQR105		"Edimax 10 Gigabit Ethernet PCI Express Adapter"
+1fc9/4026/1fc9/3015	SFP+ TI TLK10232		"TN9610 10GbE SFP+ Ethernet Adapter"
+1fc9/4026/4c52/1000	SFP+ TI TLK10232		"LR-Link LREC6860AF 10 Gigabit Ethernet Adapter"
+1fc9/4027/1fc9/3015	NBASE-T Pele MV88X3310	"TN9710P 10GBase-T/NBASE-T Ethernet Adapter"
+1fc9/4027/1432/8104	NBASE-T Pele MV88X3310	"Edimax 10 Gigabit Ethernet PCI Express Adapter"
+1fc9/4027/1154/0368	NBASE-T Pele MV88X3310	"Buffalo LGY-PCIE-MG Ethernet Adapter"
+1fc9/4027/1546/4027	NBASE-T Pele MV88X3310	"IOI GE10-PCIE4XG202P 10Gbase-T/NBASE-T Ethernet Adapter"
+1fc9/4027/4c52/1001	NBASE-T Pele MV88X3310	"LR-Link LREC6860BT 10 Gigabit Ethernet Adapter"
+1fc9/4027/1baa/3310	NBASE-T Pele MV88X3310	"QNAP LAN-10G1T-THT 10Gbase-T/NBASE-T Ethernet Adapter"
+1fc9/4527/1fc9/3015	5GBASE-T Pele MV88E2010	"TN9710Q 5GBase-T/NBASE-T Ethernet Adapter"
+
+- Kernel versions supported: 2.6.32-5.1
+
+Version 0.3.6.17.2 2019/05/12
+=============================
+- Fix compilation error under kernel 5.1.1
+
+Version 0.3.6.17.1 2019/01/09
+=============================
+- Fix compilation error under RHEL 8
+- Change default installation folder as required by RHEL 8
+- Fix kernel 4.20 compilation error (deprecated ethtool_ops.[gs]et_settings)
+
+
+Version 0.3.6.17 2018/10/10
+=============================
+- Update 3310P/E2010P to 0.3.4.0
+- Update AQR105 to 2.c.72
+- Add support for QNAP's TN9710P SVID/SDID and LED definition
+- Add support for LR-Link's TN9610 & TN9710P SVID/SDID
+- Power Management improvements
+
+Version 0.3.6.16.1 2018/05/24
+=============================
+- Fixed CentOS compilation errors
+
+Version 0.3.6.16 2018/03/25
+===========================
+- New memory allocation method for certain applications (Beta version, disabled)
+- Update AQR105 firmware to 2.b.e2
+- Improvement to CX4 over short trace
+- Improved 3310P/E2010P startup routine for 10G
+- Improved 3310P/E2010P startup routine for XS708E compatability
+- Update 3310P/E2010P to 0.3.3.0
+- Add IOI SVID/SDID support
+- Add ethtool 2.5G/5G support (but ethtool may need a rebuild)
+- Software PTP support (Beta version, disabled)
+
+Version 0.3.6.15 2017/10/18
+===========================
+- New build method for Marvell PHYs. Please consult the Readme file
+- Improved startup procudure for "Phyless" CX4 mode
+- Dynamic advertising of MACA for RX flow control
+- Support for IEI SVID/SDID added
+- Improved memory allocation for memory limited or fragmented applications
+
+Version 0.3.6.14.3 2017/09/24
+=============================
+- Fix RX Flow Control
+- Fix ethtool mtu on Ubuntu 17.04
+- Improve single PHY build code
+- Fix compilation error for CentOS 7.4
+
+Version 0.3.6.14.2 2017/07/18
+=============================
+- Fix missing PCP bits in VLAN tag
+
+Version 0.3.6.14.1 2017/06/27
+=============================
+- Add CX4 card support (TN9030)
+- Fix ethtool speed reporting for SFP+ cards
+- Fix Hibernate support
+- Support Flow Control for TN9710 cards
+- Update PHY firmware to 0.2.8.0 for TN9710 cards
+- Support Thunderbolt Surprise Remove
+- Fix Compilation failed for kernel 4.11
+
+Version 0.3.6.14 2017/03/08
+===========================
+- Support for Pele 88X3310P and 88E2010P PHYs
+
+Version 0.3.6.13 2016/09/07
+===========================
+- New adapter naming convention
+- Driver debugging options
+- Support RHEL6.8
+- Support kernel 4.7
+- Firmware update for AQR105 and MV88X3110
+
+Version 0.3.6.12 2015/02/19
+===========================
+- Support TI TLK10232 phy 
+- Remove old MDIO interface 
+- Support Aquantia AQ2104 phy 
+- Merge D-Link special APM firmware and IDs into Jumbo Driver 
+- Fix RHEL7 Compilation error 
+- Support Speed force (100,1000,2500,5000,10000) 
+- Support ethtool -s 
+- Support ethtool -p for kernel version < 3.0 & > 3.13 
+- Known Issues: 
+- - Ehtool Info does not show support for 2.5GBASE-T & 5GBASE-T, but it could be set for supported devices. 
+
+Version 0.3.6.11 2014/4/10
+===========================
+- Makefile checks is /etc/pm exists 
+- Fixed VLAN bug 
+- Removed TN8020 PHY support 
+- Added WARNING compilation flag. 
+- Work around H/W UDP false checksum error 
+- Support ethtool -p for kernel version < 3.0 
+
+Version 0.3.6.11 2013/12/8
+===========================
+- SFP+ 1G modules support 
+- Ethtool RX checksum report fix 
+
+Version 0.3.6.10.1 2013/12/25
+===========================
+- bdx_skb_rx_add_frag() 
+- Receive buffer allocation low memory warning 
+- Makefile checks is /etc/pm exists 
+
+Version 0.3.6.10 2013/11/4
+===========================
+- Pele PHY FW 2.4.1.0 
+- False H/W tcp checksum error work around 
+- Kernel 3.11 support 
+- Multiple cards support 
+- Updated Ethtool support 
+
+Version 0.3.6.9 2013/09/22
+===========================
+- Reduced memory foot print by MAC FW size 
+- Fixed close crash bug 
+
+Version 0.3.6.8 2013/08/12
+===========================
+- Initial tn40xx Jumbo Driver release
