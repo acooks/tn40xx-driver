@@ -89,7 +89,7 @@ int AQR105_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 }
 
 #ifdef ETHTOOL_GLINKSETTINGS
-#define AQR105_ALL_SPEEDS	(__ETHTOOL_LINK_MODE_LAST+1)
+#define AQR105_ALL_SPEEDS	(__ETHTOOL_LINK_MODE_MASK_NBITS)
 
 static void AQR105_set_link_mode(unsigned long *bits, u32 speed)
 {
