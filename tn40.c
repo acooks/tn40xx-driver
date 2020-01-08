@@ -3292,7 +3292,11 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 				 struct txd_desc *txdd, int *nr_frags,
 				 unsigned int *pkt_len)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
 	struct skb_frag_struct *frag;
+#else
+	skb_frag_t *frag;
+#endif
 	dma_addr_t dmaAddr;
 	int i, len;
 	struct txdb *db = &priv->txdb;
@@ -3300,6 +3304,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 	int nrFrags = skb_shinfo(skb)->nr_frags;
 	int copyFrags = 0;
 	int copyBytes = 0;
+	unsigned int size;
 
 	do {
 		pr_debug("TX skb %p skbLen %d dataLen %d frags %d\n", skb,
@@ -3328,17 +3333,19 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 
 			frag = &skb_shinfo(skb)->frags[i];
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 2,0)
+			size = frag->size;
 			dmaAddr =
 			    pci_map_page(priv->pdev, frag->page,
-					 frag->page_offset, frag->size,
+					 frag->page_offset, size,
 					 PCI_DMA_TODEVICE);
 #else
+			size = skb_frag_size(frag);
 			dmaAddr =
 			    skb_frag_dma_map(&priv->pdev->dev, frag, 0,
-					     frag->size, PCI_DMA_TODEVICE);
+					     size, PCI_DMA_TODEVICE);
 #endif
 			bdx_tx_db_inc_wptr(db);
-			bdx_setTxdb(db, dmaAddr, frag->size);
+			bdx_setTxdb(db, dmaAddr, size);
 			bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
 			*pkt_len += db->wptr->len;
 		}
