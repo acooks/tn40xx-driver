@@ -299,7 +299,6 @@ enum { IRQ_INTX, IRQ_MSI, IRQ_MSIX };
 #define INT_REG_VAL(coal, coal_rc, rxf_th, pck_th)  \
     ((coal) | ((coal_rc) << 15) | ((rxf_th) << 16) | ((pck_th) << 20))
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 #define USE_PAGED_BUFFERS             1
 /*#define RX_REUSE_PAGES */
 #if defined(RX_REUSE_PAGES) && !defined(USE_PAGED_BUFFERS)
@@ -906,11 +905,8 @@ struct txf_desc {
 #define netdev_for_each_mc_addr(mclist, dev) \
     for (mclist = dev->mc_list; mclist; mclist = mclist->next)
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
 #define dev_mc_list     netdev_hw_addr
 #define dmi_addr    addr
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 #define LUXOR__SCHEDULE_PREP(napi, dev) napi_schedule_prep(napi)
 #define LUXOR__SCHEDULE(napi, dev)  __napi_schedule(napi)
 #define LUXOR__POLL_ENABLE(dev)
@@ -919,23 +915,6 @@ struct txf_desc {
 #define LUXOR__NAPI_DISABLE(napi)   napi_disable(napi)
 #define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
                   netif_napi_add(dev, napi, poll, weight)
-#else
-#define LUXOR__SCHEDULE_PREP(napi, dev) netif_rx_schedule_prep(dev)
-#define LUXOR__SCHEDULE(napi, dev)  __netif_rx_schedule(dev)
-#define LUXOR__POLL_ENABLE(dev)     netif_poll_enable(dev)
-#define LUXOR__POLL_DISABLE(dev)    netif_poll_disable(dev)
-#define LUXOR__NAPI_ENABLE(napi)
-#define LUXOR__NAPI_DISABLE(napi)
-/*#define LUXOR__NAPI_ADD(dev, napi, poll, weight) */
-#define LUXOR__NAPI_ADD(dev, napi, poll, weight) init_napi(dev, napi)
-
-inline void init_napi(struct net_device *dev, struct napi_struct *napi)
-{
-	memset(napi, 0, sizeof(*napi));
-	napi->dev = dev;
-}
-
-#endif
 
 #ifndef RHEL_RELEASE_VERSION
 #define RHEL_RELEASE_VERSION(a,b) (((a) << 8) + (b))
@@ -950,27 +929,7 @@ inline void init_napi(struct net_device *dev, struct napi_struct *napi)
 #else
 #define LUXOR__MAX_PAGE_SIZE    0x10000
 #endif
-#elif defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE >= 1285) && defined(NETIF_F_GRO)
-#define USE_PAGED_BUFFERS             1
-/*
- * Note: RHEL & CentOs use 16 bits for page_offset. Do not increas
- *       LUXOR__MAX_PAGE_SIZE beyind 64K!
- */
-#define LUXOR__MAX_PAGE_SIZE    0x10000
-void inline skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
-			    int off, int size)
-{
-	skb_fill_page_desc(skb, i, page, off, size);
-	skb->len += size;
-	skb->data_len += size;
-	skb->truesize += size;
-}
-#elif defined(USE_PAGED_BUFFERS) && USE_PAGED_BUFFERS == 0
-#define LUXOR__MAX_PAGE_SIZE    0x10000
-#undef USE_PAGED_BUFFERS
-#else
-#define LUXOR__MAX_PAGE_SIZE    0x10000
-#endif
+
 #if (defined(RHEL_RELEASE_CODE) && \
      (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,4)) && \
      (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(7,0)))

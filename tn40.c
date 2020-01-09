@@ -939,7 +939,6 @@ static inline void bdx_isr_extra(struct bdx_priv *priv, u32 isr)
 #endif
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 /* bdx_isr - Interrupt Service Routine for Bordeaux NIC
  * @irq    - Interrupt number
  * @ndev   - Network device
@@ -999,122 +998,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 
 }
 
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-/* bdx_isr - Interrupt Service Routine for Bordeaux NIC
- * @irq    - Interrupt number
- * @ndev   - Network device
- * @regs   - CPU registers
- *
- * Return IRQ_NONE if it was not our interrupt, IRQ_HANDLED - otherwise
- *
- * Read the ISR register to know interrupt triggers and process them one by
- * one.
- *
- * Interrupt triggers are:
- *    RX_DESC - A new packet has arrived and RXD fifo holds its descriptor
- *    RX_FREE - The number of free Rx buffers in RXF fifo gets low
- *    TX_FREE - A packet was transmitted and RXF fifo holds its descriptor
- */
-static irqreturn_t bdx_isr_napi(int irq, struct net_device *ndev)
-{
-	struct bdx_priv *priv = ndev->priv;
-	u32 isr;
-
-	isr = READ_REG(priv, regISR_MSK0);
-	if (unlikely(!isr)) {
-		bdx_enable_interrupts(priv);
-		return IRQ_NONE;	/* Not our interrupt */
-	}
-
-	if (isr & IR_EXTRA)
-		bdx_isr_extra(priv, isr);
-
-	if (isr & (IR_RX_DESC_0 | IR_TX_FREE_0)) {
-		if (likely(LUXOR__SCHEDULE_PREP(&priv->napi, ndev))) {
-			LUXOR__SCHEDULE(&priv->napi, ndev);
-			return IRQ_HANDLED;
-		} else {
-			/*
-			 * NOTE: We get here if an interrupt has slept into
-			 *       the small time window between these lines in
-			 *       bdx_poll:
-			 *   bdx_enable_interrupts(priv);
-			 *   return 0;
-			 *
-			 *   Currently interrupts are disabled (since we
-			 *   read the ISR register) and we have failed to
-			 *       register the next poll. So we read the regs to
-			 *       trigger the chip and allow further interrupts.
-			 */
-			READ_REG(priv, regTXF_WPTR_0);
-			READ_REG(priv, regRXD_WPTR_0);
-		}
-	}
-
-	bdx_enable_interrupts(priv);
-	return IRQ_HANDLED;
-}
-
-#else
-/* bdx_isr - Interrupt Service Routine for Bordeaux NIC
- * @irq    - Interrupt number
- * @ndev   - Network device
- * @regs   - CPU registers
- *
- * Return IRQ_NONE if it was not our interrupt, IRQ_HANDLED - otherwise
- *
- * Read the ISR register to know interrupt triggers and process them one by
- * one.
- *
- * Interrupt triggers are:
- *    RX_DESC - A new packet has arrived and RXD fifo holds its descriptor
- *    RX_FREE - The number of free Rx buffers in RXF fifo gets low
- *    TX_FREE - A packet was transmitted and RXF fifo holds its descriptor
- */
-static irqreturn_t bdx_isr_napi(int irq, void *dev, struct pt_regs *regs)
-{
-	struct net_device *ndev = (struct net_device *)dev;
-	struct bdx_priv *priv = ndev->priv;
-	u32 isr;
-
-	isr = READ_REG(priv, regISR_MSK0);
-	if (unlikely(!isr)) {
-		bdx_enable_interrupts(priv);
-		return IRQ_NONE;	/* Not our interrupt */
-	}
-
-	if (isr & IR_EXTRA)
-		bdx_isr_extra(priv, isr);
-
-	if (isr & (IR_RX_DESC_0 | IR_TX_FREE_0)) {
-		if (likely(LUXOR__SCHEDULE_PREP(&priv->napi, ndev))) {
-			LUXOR__SCHEDULE(&priv->napi, ndev);
-			return IRQ_HANDLED;
-		} else {
-			/*
-			 * NOTE: We get here if an interrupt has slept into
-			 *       the small time window between these lines in
-			 *       bdx_poll:
-			 *   bdx_enable_interrupts(priv);
-			 *   return 0;
-			 *
-			 *   Currently interrupts are disabled (since we
-			 *       read the ISR register) and we have failed to
-			 *       register the next poll. So we read the regs to
-			 *       trigger the chip and allow further interrupts.
-			 */
-			READ_REG(priv, regTXF_WPTR_0);
-			READ_REG(priv, regRXD_WPTR_0);
-		}
-	}
-
-	bdx_enable_interrupts(priv);
-	return IRQ_HANDLED;
-}
-
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
 static int bdx_poll(struct napi_struct *napi, int budget)
 {
 	struct bdx_priv *priv = container_of(napi, struct bdx_priv, napi);
@@ -1134,53 +1017,6 @@ static int bdx_poll(struct napi_struct *napi, int budget)
 
 	return work_done;
 }
-
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-static int bdx_poll(struct napi_struct *napi, int budget)
-{
-	struct bdx_priv *priv = container_of(napi, struct bdx_priv, napi);
-	int work_done;
-
-	if (!priv->bDeviceRemoved) {
-
-		bdx_tx_cleanup(priv);
-		work_done = bdx_rx_receive(priv, &priv->rxd_fifo0, budget);
-		if (work_done < budget) {
-			netif_rx_complete(priv->ndev, napi);
-			bdx_enable_interrupts(priv);
-		}
-	} else {
-		work_done = budget;
-	}
-
-	return work_done;
-}
-
-#else
-static int bdx_poll(struct net_device *ndev, int *budget_p)
-{
-	struct bdx_priv *priv = ndev->priv;
-	int work_done;
-	int rVal = 0;
-
-	if (!priv->bDeviceRemoved) {
-		bdx_tx_cleanup(priv);
-		work_done =
-		    bdx_rx_receive(priv, &priv->rxd_fifo0,
-				   min(*budget_p, priv->ndev->quota));
-		*budget_p -= work_done;
-		priv->ndev->quota -= work_done;
-		if (work_done < *budget_p) {
-			pr_debug("rx poll is done. backing to isr-driven\n");
-			netif_rx_complete(ndev);
-			bdx_enable_interrupts(priv);
-		}
-		rVal = 1;
-	}
-
-	return rVal;
-}
-#endif
 
 /* bdx_fw_load - Load the firmware to the NIC
  * @priv       - NIC private structure
@@ -1682,12 +1518,6 @@ static void __bdx_vlan_rx_vid(struct net_device *ndev, uint16_t vid, int enable)
  * @ndev - Network device
  * @vid  - Vlan vid to add
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3,0)
-static void bdx_vlan_rx_add_vid(struct net_device *ndev, uint16_t vid)
-{
-	__bdx_vlan_rx_vid(ndev, vid, 1);
-}
-#else
 #ifdef NETIF_F_HW_VLAN_CTAG_TX
 static int bdx_vlan_rx_add_vid(struct net_device *ndev,
 			       __always_unused __be16 proto, u16 vid)
@@ -1698,7 +1528,6 @@ static int bdx_vlan_rx_add_vid(struct net_device *ndev, u16 vid)
 	__bdx_vlan_rx_vid(ndev, vid, 1);
 	return 0;
 }
-#endif
 
 /*
  * bdx_vlan_rx_kill_vid - A kernel hook for killing VLAN vid in hw filtering
@@ -1707,12 +1536,6 @@ static int bdx_vlan_rx_add_vid(struct net_device *ndev, u16 vid)
  * @ndev - Network device
  * @vid  - Vlan vid to kill
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3,0)
-static void bdx_vlan_rx_kill_vid(struct net_device *ndev, unsigned short vid)
-{
-	__bdx_vlan_rx_vid(ndev, vid, 0);
-}
-#else
 #ifdef NETIF_F_HW_VLAN_CTAG_RX
 static int bdx_vlan_rx_kill_vid(struct net_device *ndev,
 				__always_unused __be16 proto, u16 vid)
@@ -1723,26 +1546,6 @@ static int bdx_vlan_rx_kill_vid(struct net_device *ndev, u16 vid)
 	__bdx_vlan_rx_vid(ndev, vid, 0);
 	return 0;
 }
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 1,0)
-
-/*
- * bdx_vlan_rx_register - A kernel hook for adding VLAN group
- *
- * @ndev - Network device
- * @grp  - VLAN group
- */
-static void
-bdx_vlan_rx_register(struct net_device *ndev, struct vlan_group *grp)
-{
-	struct bdx_priv *priv = netdev_priv(ndev);
-
-	pr_debug("device ='%s', group ='%p'\n", ndev->name, grp);
-	priv->vlgrp = grp;
-
-}
-#endif
 
 /**
  * bdx_change_mtu - Change the Maximum Transfer Unit
@@ -2013,22 +1816,10 @@ static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 			u32 rxd_val1, u16 rxd_vlan)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 1,0)
-	if (priv->vlgrp && GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
-		vlan_gro_frags(&priv->napi, priv->vlgrp,
-			       GET_RXD_VLAN_TCI(rxd_vlan));
-	}
-#elif  LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
-	if (GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
-		__vlan_hwaccel_put_tag(skb,
-				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
-	}
-#else
 	if (GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
 		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
 				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
 	}
-#endif
 }
 
 #ifdef RX_REUSE_PAGES
@@ -2436,22 +2227,10 @@ static void bdx_rx_set_dm_page(register struct rx_map *dm,
 static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 			u32 rxd_val1, u16 rxd_vlan)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 1,0)
-	if (priv->vlgrp && GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
-		LUXOR__VLAN_RECEIVE(&priv->napi, priv->vlgrp,
-				    GET_RXD_VLAN_TCI(rxd_vlan), skb);
-	} else			/* Regular case */
-#elif  LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
-	if (GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
-		__vlan_hwaccel_put_tag(skb,
-				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
-	}
-#else
 	if (GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
 		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
 				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
 	}
-#endif
 }
 
 static int bdx_rx_get_page_size(struct bdx_priv *priv)
@@ -2780,20 +2559,7 @@ static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 				int off, int len)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0) || (defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE > 1539))
 	skb_add_rx_frag(skb, 0, page, off, len, SKB_TRUESIZE(len));
-#else
-#if (!defined SKB_DATA_ALIGN)
-#define SKB_DATA_ALIGN(X)	(((X) + (SMP_CACHE_BYTES - 1)) & ~(SMP_CACHE_BYTES - 1))
-#endif
-#if (!defined SKB_TRUESIZE)
-#define SKB_TRUESIZE(X) ((X) + SKB_DATA_ALIGN(sizeof(struct sk_buff)) +	SKB_DATA_ALIGN(sizeof(struct skb_shared_info)))
-#endif
-	skb_fill_page_desc(skb, i, page, off, len);
-	skb->len += len;
-	skb->data_len += len;
-	skb->truesize += SKB_TRUESIZE(len);
-#endif
 }
 #endif
 
@@ -3035,22 +2801,11 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 #endif /* USE_PAGED_BUFFERS */
 
 #if defined(USE_RSS)
-
-#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0) )
 		skb->hash = CPU_CHIP_SWAP32(rxdd->rss_hash);
 #if !defined(RHEL_RELEASE_CODE)
 		skb->l4_hash = 1;
 #endif
 		pr_debug("rxhash    = 0x%x\n", skb->hash);
-
-#else
-		skb->rxhash = CPU_CHIP_SWAP32(rxdd->rss_hash);
-#if !defined(RHEL_RELEASE_CODE)
-		skb->l4_rxhash = 1;
-#endif
-		pr_debug("rxhash    = 0x%x\n", skb->rxhash);
-#endif
-
 #endif /* USE_RSS */
 		priv->net_stats.rx_bytes += len;
 /*
@@ -3325,18 +3080,10 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 		for (i = copyFrags; i < nrFrags; i++) {
 
 			frag = &skb_shinfo(skb)->frags[i];
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 2,0)
-			size = frag->size;
-			dmaAddr =
-			    pci_map_page(priv->pdev, frag->page,
-					 frag->page_offset, size,
-					 PCI_DMA_TODEVICE);
-#else
 			size = skb_frag_size(frag);
 			dmaAddr =
 			    skb_frag_dma_map(&priv->pdev->dev, frag, 0,
 					     size, PCI_DMA_TODEVICE);
-#endif
 			bdx_tx_db_inc_wptr(db);
 			bdx_setTxdb(db, dmaAddr, size);
 			bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
@@ -3981,18 +3728,13 @@ static int bdx_ioctl(struct net_device *ndev, struct ifreq *ifr, int cmd)
 
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 static const struct net_device_ops bdx_netdev_ops = {
 	.ndo_open = bdx_open,
 	.ndo_stop = bdx_close,
 	.ndo_start_xmit = bdx_tx_transmit,
 	.ndo_validate_addr = eth_validate_addr,
 	.ndo_do_ioctl = bdx_ioctl,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 2, 0)
-	.ndo_set_multicast_list = bdx_setmulti,
-#else
 	.ndo_set_rx_mode = bdx_setmulti,
-#endif
 	.ndo_get_stats = bdx_get_stats,
 #if defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE>=RHEL_RELEASE_VERSION(8,0))
 	.ndo_change_mtu = bdx_change_mtu,
@@ -4002,13 +3744,9 @@ static const struct net_device_ops bdx_netdev_ops = {
 	.ndo_change_mtu = bdx_change_mtu,
 #endif
 	.ndo_set_mac_address = bdx_set_mac,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 1,0)
-	.ndo_vlan_rx_register = bdx_vlan_rx_register,
-#endif
 	.ndo_vlan_rx_add_vid = bdx_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid = bdx_vlan_rx_kill_vid,
 };
-#endif
 
 static int bdx_get_ports_by_id(int vendor, int device)
 {
@@ -4180,29 +3918,8 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		goto err_out_iomap;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 	ndev->netdev_ops = &bdx_netdev_ops;
 	ndev->tx_queue_len = BDX_NDEV_TXQ_LEN;
-#else
-	ndev->open = bdx_open;
-	ndev->stop = bdx_close;
-	ndev->hard_start_xmit = bdx_tx_transmit;
-	ndev->tx_timeout = bdx_tx_timeout;
-	ndev->do_ioctl = bdx_ioctl;
-	ndev->set_multicast_list = bdx_setmulti;
-	ndev->get_stats = bdx_get_stats;
-	ndev->change_mtu = bdx_change_mtu;
-	ndev->set_mac_address = bdx_set_mac;
-	ndev->tx_queue_len = BDX_NDEV_TXQ_LEN;
-	ndev->vlan_rx_register = bdx_vlan_rx_register;
-	ndev->vlan_rx_add_vid = bdx_vlan_rx_add_vid;
-	ndev->vlan_rx_kill_vid = bdx_vlan_rx_kill_vid;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-	ndev->poll = bdx_poll;
-	ndev->weight = 64;
-#endif
-#endif
 
 	/*
 	 * These fields are used for information purposes only,
@@ -4231,15 +3948,11 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	if (pci_using_dac)
 		ndev->features |= NETIF_F_HIGHDMA;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
 	ndev->vlan_features = (NETIF_F_IP_CSUM |
 			       NETIF_F_SG |
 			       NETIF_F_TSO | NETIF_F_GRO | NETIF_F_RXHASH);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 	if (pci_using_dac)
 		ndev->vlan_features |= NETIF_F_HIGHDMA;
-#endif
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	ndev->min_mtu = ETH_ZLEN;
 	ndev->max_mtu = BDX_MAX_MTU;
@@ -4298,9 +4011,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	spin_lock_init(&priv->tx_lock);
 	ndev->features |= NETIF_F_LLTX;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 	ndev->hw_features |= ndev->features;
-#endif
 
 	if (bdx_read_mac(priv)) {
 		pr_err("load MAC address failed\n");
@@ -4514,28 +4225,6 @@ bdx_get_drvinfo(struct net_device *netdev, struct ethtool_drvinfo *drvinfo)
 	drvinfo->eedump_len = 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3,0)
-/*
- * bdx_get_rx_csum - Report whether receive checksums are turned on or off.
- *
- * @netdev
- */
-static u32 bdx_get_rx_csum(struct net_device *netdev)
-{
-	return 1;		/* Always on */
-}
-
-/*
- * bdx_get_tx_csum - Report whether transmit checksums are turned on or off.
- *
- * @netdev
- */
-static u32 bdx_get_tx_csum(struct net_device *netdev)
-{
-	return (netdev->features & NETIF_F_IP_CSUM) != 0;
-}
-#endif
-
 /*
  * bdx_get_coalesce - Get interrupt coalescing parameters.
  *
@@ -4712,7 +4401,6 @@ static void bdx_get_strings(struct net_device *netdev, u32 stringset, u8 * data)
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 
 /*
  * bdx_get_sset_count - Return the number of statistics or tests.
@@ -4732,22 +4420,6 @@ static int bdx_get_sset_count(struct net_device *netdev, int stringset)
 		return -EINVAL;
 	}
 }
-
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
-/*
- * bdx_get_stats_count - Return the number of 64bit statistics counters.
- *
- * @netdev
- */
-static int bdx_get_stats_count(struct net_device *netdev)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-	BDX_ASSERT(ARRAY_SIZE(bdx_stat_names) !=
-		   sizeof(struct bdx_stats) / sizeof(u64));
-	return ((priv->stats_flag) ? ARRAY_SIZE(bdx_stat_names) : 0);
-}
-#endif
 
 /*
  * bdx_get_ethtool_stats - Return device's hardware L2 statistics.
@@ -4771,7 +4443,6 @@ static void bdx_get_ethtool_stats(struct net_device *netdev,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 
 /* Blink LED's for finding board */
 
@@ -4803,48 +4474,6 @@ static int bdx_set_phys_id(struct net_device *netdev,
 	return rval;
 }
 
-#else
-
-static void bdx_blink_callback(unsigned long data)
-{
-	struct bdx_priv *priv = (struct bdx_priv *)data;
-
-	priv->phy_ops.leds[0] = !priv->phy_ops.leds[0];
-	if (priv->phy_ops.leds[0]) {
-		priv->phy_ops.ledset(priv, PHY_LEDS_ON);
-	} else {
-		priv->phy_ops.ledset(priv, PHY_LEDS_OFF);
-	}
-
-	mod_timer(&priv->blink_timer, jiffies + HZ);
-}
-
-/*
- * bdx_phys_id - Blink the device led.
- * @netdev
- * @data       - Number of seconds to blink (0 - forever)
- */
-static int bdx_phys_id(struct net_device *netdev, u32 data)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	if (data == 0)
-		data = INT_MAX;
-
-	if (!priv->blink_timer.function) {
-		init_timer(&priv->blink_timer);
-		priv->blink_timer.function = bdx_blink_callback;
-		priv->blink_timer.data = (unsigned long)priv;
-	}
-	priv->phy_ops.ledset(priv, PHY_LEDS_SAVE);
-	mod_timer(&priv->blink_timer, jiffies);
-	msleep_interruptible(data * 1000);
-	del_timer_sync(&priv->blink_timer);
-	priv->phy_ops.ledset(priv, PHY_LEDS_RESTORE);
-	return 0;
-}
-
-#endif
 #ifdef _EEE_
 #ifdef ETHTOOL_GEEE
 
@@ -4943,25 +4572,10 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 		.set_eee = bdx_set_eee,
 #endif
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3,0)
-		.get_rx_csum = bdx_get_rx_csum,
-		.get_tx_csum = bdx_get_tx_csum,
-		.get_sg = ethtool_op_get_sg,
-		.get_tso = ethtool_op_get_tso,
-#endif
 		.get_strings = bdx_get_strings,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		.get_sset_count = bdx_get_sset_count,
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
-		.get_stats_count = bdx_get_stats_count,
-#endif
 		.get_ethtool_stats = bdx_get_ethtool_stats,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 		.set_phys_id = bdx_set_phys_id,
-#else
-		.phys_id = bdx_phys_id,
-#endif
 #if (defined(TN40_PTP) && defined(ETHTOOL_GET_TS_INFO))
 		.get_ts_info = bdx_get_ts_info,
 #endif
@@ -4978,12 +4592,8 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 	set_ethtool_ops_ext(netdev, &bdx_ethtool_ops_ext);
 #endif
 
-#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0) )
 #define SET_ETHTOOL_OPS(netdev, ops) ((netdev)->ethtool_ops = (ops))
-#endif /* >= 3.16.0 */
-
 	SET_ETHTOOL_OPS(netdev, &bdx_ethtool_ops);
-
 }
 
 /**
