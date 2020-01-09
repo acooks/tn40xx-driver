@@ -22,17 +22,13 @@
 #include <linux/crc32.h>
 #include <linux/msi.h>
 #include <linux/list.h>
-#ifndef __VMKLNX__
 #include <linux/uaccess.h>
-#endif
 #include <linux/in.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/sched.h>
-#ifndef __VMKLNX__
 #include <linux/tty.h>
-#endif
 #include <linux/if_ether.h>
 #include <linux/if_vlan.h>
 #include <linux/interrupt.h>
@@ -40,10 +36,6 @@
 #include <linux/version.h>
 #include <asm/byteorder.h>
 #include "tn40_ioctl.h"
-#ifdef __VMKLNX__
-#define VM_KLNX
-#include <linux/mm.h>
-#endif /* __VMKLNX__ */
 
 #ifdef _DRIVER_RESUME_
 #undef __init
@@ -918,7 +910,7 @@ struct txf_desc {
 #define dev_mc_list     netdev_hw_addr
 #define dmi_addr    addr
 #endif
-#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)) || (defined VM_KLNX))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 #define LUXOR__SCHEDULE_PREP(napi, dev) napi_schedule_prep(napi)
 #define LUXOR__SCHEDULE(napi, dev)  __napi_schedule(napi)
 #define LUXOR__POLL_ENABLE(dev)
@@ -1073,16 +1065,6 @@ struct timer {
 #define END_TIMER(t)
 #define RESET_TIMER(t)
 #define PRINT_TIMER(t)
-#endif
-
-#ifdef __VMKLNX__
-#define __ALIGN_KERNEL_MASK(x, mask)    (((x) + (mask)) & ~(mask))
-#define __ALIGN_KERNEL(x, a)            __ALIGN_KERNEL_MASK(x, (typeof(x))(a) - 1)
-#define __refdata
-#undef ALIGN
-#define ALIGN(x, a)                     __ALIGN_KERNEL((x), (a))
-#define PTR_ALIGN(p, a)                 ((typeof(p))ALIGN((unsigned long)(p), (a)))
-void get_page(struct page *page);
 #endif
 
 u32 bdx_mdio_get(struct bdx_priv *priv);

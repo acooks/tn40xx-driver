@@ -7,9 +7,6 @@
  */
 
 #include "tn40.h"
-#ifdef VM_KLNX
-#include "tn40_vmware.h"
-#endif
 #include "tn40_fw.h"
 
 static void bdx_scan_pci(void);
@@ -942,7 +939,7 @@ static inline void bdx_isr_extra(struct bdx_priv *priv, u32 isr)
 #endif
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24) || (defined VM_KLNX)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 /* bdx_isr - Interrupt Service Routine for Bordeaux NIC
  * @irq    - Interrupt number
  * @ndev   - Network device
@@ -1117,7 +1114,7 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev, struct pt_regs *regs)
 
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28) || (defined VM_KLNX)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
 static int bdx_poll(struct napi_struct *napi, int budget)
 {
 	struct bdx_priv *priv = container_of(napi, struct bdx_priv, napi);
@@ -3323,11 +3320,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 		bdx_setTxdb(db, dmaAddr, len);
 		bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
 		*pkt_len = db->wptr->len;
-#if (defined VM_KLNX)
-		/* copy frags */
-		copyBytes =
-		    bdx_tx_copy_frags(priv, skb, &copyFrags, &pbl, nr_frags);
-#endif
+
 		/* remaining frags */
 		for (i = copyFrags; i < nrFrags; i++) {
 
@@ -3634,15 +3627,6 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	netif_tx_lock(priv->ndev);
 #endif
 	while (f->m.wptr != f->m.rptr) {
-#if (defined VM_KLNX)
-		struct txf_desc *txfd =
-		    (struct txf_desc *)(f->m.va + f->m.rptr);
-		if (txfd->va_hi != 0) {
-			pr_debug("bdx_freeCmem() skb 0x%x len %d\n",
-				 txfd->va_lo, txfd->va_hi);
-			bdx_freeCmem(priv, txfd->va_hi);
-		}
-#endif
 		f->m.rptr += BDX_TXF_DESC_SZ;
 		f->m.rptr &= f->m.size_mask;
 		/* Unmap all fragments */
@@ -4214,7 +4198,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	ndev->vlan_rx_add_vid = bdx_vlan_rx_add_vid;
 	ndev->vlan_rx_kill_vid = bdx_vlan_rx_kill_vid;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24) && (!defined VM_KLNX)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	ndev->poll = bdx_poll;
 	ndev->weight = 64;
 #endif
@@ -4233,9 +4217,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	    NETIF_F_SG |
 	    NETIF_F_FRAGLIST |
 	    NETIF_F_TSO | NETIF_F_VLAN_TSO | NETIF_F_VLAN_CSUM | NETIF_F_GRO |
-#if (!defined VM_KLNX)
 	    NETIF_F_RXCSUM |
-#endif
 	    NETIF_F_RXHASH;
 
 #ifdef NETIF_F_HW_VLAN_CTAG_RX
@@ -4347,10 +4329,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		goto err_out_free;
 
 	bdx_tx_free(priv);
-#if (defined VM_KLNX)
-	if ((err = bdx_initCmem(priv, CMEM_SIZE)))
-		goto err_out_free;
-#endif
 
 	netif_carrier_off(ndev);
 	netif_stop_queue(ndev);
@@ -4372,13 +4350,9 @@ err_out_iomap:
 err_out_res:
 	pci_release_regions(pdev);
 err_dma:
-#if  (!defined VM_KLNX)
 	if (pci_dev_msi_enabled(pdev)) {
 		pci_disable_msi(pdev);
 	}
-#else
-	pci_disable_msi(pdev);
-#endif
 	pci_disable_device(pdev);
 	pci_set_drvdata(pdev, NULL);
 err_pci:
@@ -5032,9 +5006,6 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 	bdx_sw_reset(priv);
 	bdx_rx_free(priv);
 	bdx_tx_free(priv);
-#if  (defined VM_KLNX)
-	bdx_freeAllCmem(priv);
-#endif
 	unregister_netdev(ndev);
 	free_netdev(ndev);
 

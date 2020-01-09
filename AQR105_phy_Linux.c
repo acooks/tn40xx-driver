@@ -23,9 +23,7 @@ int AQR105_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 #if defined(ETH_TP_MDI_AUTO)
 	ecmd->eth_tp_mdix = ETH_TP_MDI_AUTO;
 #else
-#if (!defined VM_KLNX)
 	ecmd->eth_tp_mdix = ETH_TP_MDI | ETH_TP_MDI_X;
-#endif
 #endif
 	return 0;
 
@@ -125,10 +123,8 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 	cmd->base.eth_tp_mdix = ETH_TP_MDI_AUTO;
 	cmd->base.eth_tp_mdix_ctrl = ETH_TP_MDI_AUTO;
 #else
-#if (!defined VM_KLNX)
 	cmd->base.eth_tp_mdix = ETH_TP_MDI | ETH_TP_MDI_X;
 	cmd->base.eth_tp_mdix_ctrl = ETH_TP_MDI | ETH_TP_MDI_X;
-#endif
 #endif
 	AQR105_set_link_mode(cmd->link_modes.supported, AQR105_ALL_SPEEDS);
 
