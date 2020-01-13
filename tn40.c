@@ -1392,9 +1392,7 @@ static void bdx_stop(struct bdx_priv *priv)
 		bdx_hw_stop(priv);
 		free_irq(priv->pdev->irq, priv->ndev);
 #ifdef TN40_IRQ_MSI
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 		pci_free_irq_vectors(priv->pdev);
-#endif
 #endif
 		bdx_sw_reset(priv);
 		bdx_rx_free(priv);
@@ -3714,25 +3712,6 @@ static int bdx_get_ports_by_id(int vendor, int device)
 	return 1;
 }
 
-#ifdef TN40_IRQ_MSI
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
-static int bdx_support_msi_by_id(int vendor, int device)
-{
-#if 0
-	int i = 0;
-	for (; bdx_dev_tbl[i].vid; i++) {
-		if ((bdx_dev_tbl[i].vid == vendor)
-		    && (bdx_dev_tbl[i].pid == device))
-			return bdx_dev_tbl[i].msi;
-	}
-	return 0;
-#else
-	return 1;
-#endif
-}
-#endif
-#endif /* TN40_IRQ_MSI */
-
 static int bdx_get_phy_by_id(int vendor, int device, int subsystem, int port)
 {
 	int i = 0;
@@ -3778,9 +3757,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	struct pci_nic *nic;
 	int phy;
 #ifdef TN40_IRQ_MSI
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	unsigned int nvec = 1;
-#endif
 #endif
 
 	nic = vmalloc(sizeof(*nic));
@@ -3846,23 +3823,10 @@ static int __init bdx_probe(struct pci_dev *pdev,
 
 	nic->irq_type = IRQ_INTX;
 #ifdef TN40_IRQ_MSI
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	nvec = pci_alloc_irq_vectors(pdev, 1, nvec, PCI_IRQ_MSI);
 	if (nvec < 0) {
 		goto err_out_iomap;
 	}
-#else
-
-	if (bdx_support_msi_by_id(pdev->vendor, pdev->device)) {
-		if ((err = pci_enable_msi(pdev))) {
-			pr_err("Can't enable msi. Error is %d\n", err);
-		} else {
-			nic->irq_type = IRQ_MSI;
-		}
-	} else {
-		pr_debug("HW does not support MSI\n");
-	}
-#endif
 #endif /* TN40_IRQ_MSI */
     /************** netdev **************/
 	if (!(ndev = alloc_etherdev(sizeof(struct bdx_priv)))) {
