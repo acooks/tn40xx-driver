@@ -194,48 +194,12 @@ int g_dbg = 0;
 #if defined(TN40_REGLOG)
 int g_regLog = 0;
 #endif
+
 #if defined (TN40_MEMLOG)
 int g_memLog = 0;
 #endif
 
 #if defined(TN40_DEBUG)
-
-/*
-static void dbg_irqActions(struct pci_dev *pdev)
-{
-    struct msi_desc *entry;
-DBG_ON;
-	list_for_each_entry(entry, &pdev->msi_list, list)
-    {
-			int i, j=0, nvec;
-			if (!entry->irq)
-			{
-				continue;
-			}
-			if (entry->nvec_used)
-			{
-				nvec = entry->nvec_used;
-			}
-			else
-			{
-				nvec = 1 << entry->msi_attrib.multiple;
-			}
-			for (i = 0; i < nvec; i++)
-			{
-				//BUG_ON(irq_has_action(entry->irq + i));
-				if (irq_has_action(entry->irq + i))
-				{
-					pr_debug("action on irq %d\n", entry->irq + i);
-					j += 1;
-				}
-			}
-			pr_debug("irq %d nvec %d found %d\n", entry->irq, nvec, j);
-	}
-DBG_OFF;
-
-} //dbg_irqActions()
-
-*/
 
 void dbg_printFifo(struct fifo *m, char *fName)
 {
@@ -989,7 +953,6 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 	}
 
 	bdx_enable_interrupts(priv);
-/*    return IRQ_HANDLED; */
 	return IRQ_HANDLED;
 
 }
@@ -1142,21 +1105,6 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 	WRITE_REG(priv, 0x111c, 0x0);	/*MAC.MAC_RST_CNT */
 
 }
-
-/*
-static  void bdx_setAffinity(u32 irq)
-{
-	//u32 cpu;
-
-	pr_debug("bdx_setAffinity  nr_cpu_ids 0x%x\n", nr_cpu_ids);
-	pr_debug("bdx_setAffinity  cpu_online_mask 0x%x\n", *(u32*)cpu_online_mask);
-	if (irq_set_affinity_hint(irq, cpu_online_mask))
-	{
-		pr_err("bdx_setAffinity() irq_set_affinity_hint failed!\n");
-	}
-
-} // setAffinity()
-*/
 
 /* bdx_hw_start - Initialize registers and starts HW's Rx and Tx engines
  * @priv    - NIC private structure
@@ -1314,8 +1262,6 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 	/* 8. Reset port */
 	WRITE_REG(priv, regRST_PORT, 1);
 	/* 9. Zero all read and write pointers */
-	/*for (i = regTXD_WPTR_0; i <= regTXF_RPTR_3; i += 0x10) */
-
 	for (i = regTXD_WPTR_0; i <= regTXF_RPTR_3; i += 0x10)
 		WRITE_REG(priv, i, 0);
 	/* 10. Unset port disable */
@@ -1328,12 +1274,6 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 	WRITE_REG(priv, regRST_PORT, 0);
 	/* 14. Enable Rx */
 	/* Skipped. will be done later */
-	/* 15. Save MAC (obsolete) */
-	/*for (i = regTXD_WPTR_0; i <= regTXF_RPTR_3; i += 0x10) */
-	/*{ */
-
-	/*} */
-
 	return 0;
 
 }
@@ -1643,10 +1583,6 @@ static int bdx_set_mac(struct net_device *ndev, void *p)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	struct sockaddr *addr = p;
 
-	/*
-	   if (netif_running(dev))
-	   return -EBUSY
-	 */
 	memcpy(ndev->dev_addr, addr->sa_data, ndev->addr_len);
 	bdx_restore_mac(ndev, priv);
 	return 0;
@@ -1929,7 +1865,6 @@ static int bdx_rx_alloc_pages(struct bdx_priv *priv)
 	int rVal = -1;
 
 	do {
-/*              buf_size = 4000; /// Debug */
 		priv->rx_page_table.page_size =
 		    bdx_rx_set_page_size(buf_size, &page_used);
 		nPages = (db->nelem * buf_size + (page_used - 1)) / page_used;
@@ -2469,8 +2404,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 		dno--;
 	}
 	pr_debug("nPages %d\n", nPages);
-/*    if (nPages > 0) */
-/*    { */
 	WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
 	pr_debug("WRITE_REG 0x%04x f->m.reg_WPTR 0x%x\n", f->m.reg_WPTR,
 		 f->m.wptr & TXF_WPTR_WR_PTR);
@@ -2479,7 +2412,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	pr_debug("READ_REG  0x%04x f->m.reg_WPTR=0x%x\n", f->m.reg_WPTR,
 		 READ_REG(priv, f->m.reg_WPTR));
 	dbg_printFifo(&priv->rxf_fifo0.m, (char *)"RXF");
-/*    } */
 
 }
 
@@ -2797,21 +2729,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		pr_debug("rxhash    = 0x%x\n", skb->hash);
 #endif /* USE_RSS */
 		priv->net_stats.rx_bytes += len;
-/*
-// Debug code
-	{
-		int 	i;
-#if defined(USE_PAGED_BUFFERS)
-		pkt = ((char *)page_address(bdx_page->page) +  dm->off);
-#else
-		pkt = db->pkt;
-		skb_copy_from_linear_data(dm->skb, pkt, len);
-#endif
-		dbg_printPkt(pkt, len);
-		dbg_printSkb(skb);
-	}
-// Debug code end
-*/
+
 		if (unlikely(++done >= budget)) {
 			break;
 		}
@@ -3697,14 +3615,6 @@ static const struct net_device_ops bdx_netdev_ops = {
 
 static int bdx_get_ports_by_id(int vendor, int device)
 {
-#if 0
-	int i = 0;
-	for (; bdx_dev_tbl[i].vid; i++) {
-		if ((bdx_dev_tbl[i].vid == vendor)
-		    && (bdx_dev_tbl[i].pid == device))
-			return bdx_dev_tbl[i].ports;
-	}
-#endif
 	return 1;
 }
 
@@ -4604,8 +4514,6 @@ __refdata static struct pci_driver bdx_pci_driver = {
 	.shutdown = __exit_p(bdx_remove),
 #ifdef _DRIVER_RESUME_
 	.driver.pm = &bdx_pm_ops,
-/*      .suspend  = bdx_suspend, */
-/*      .resume   = bdx_resume, */
 #endif
 
 };
