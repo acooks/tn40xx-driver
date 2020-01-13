@@ -487,9 +487,7 @@ struct bdx_priv {
 	int tx_level;
 	int tx_update_mark;
 	int tx_noupd;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-	spinlock_t tx_lock;	/* NETIF_F_LLTX mode */
-#endif
+
 	/* Rarely used */
 	u8 port;
 	u8 phy_mdio_port;

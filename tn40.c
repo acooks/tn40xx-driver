@@ -3217,27 +3217,12 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	unsigned int pkt_len;
 	struct txd_desc *txdd;
 	int nr_frags, len, copyBytes;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-	unsigned long flags;
-	int spinLocked;
-#endif
 	DBG_OFF;
 
 	if (!(priv->state & BDX_STATE_STARTED)) {
 		return -1;
 	}
 	do {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-		local_irq_save(flags);
-		if (!(spinLocked = spin_trylock(&priv->tx_lock))) {
-			local_irq_restore(flags);
-			pr_debug
-			    ("%s: %s TX locked, returning NETDEV_TX_LOCKED\n",
-			     BDX_DRV_NAME, ndev->name);
-			rVal = NETDEV_TX_LOCKED;
-			break;
-		}
-#endif
 		/* Build tx descriptor */
 		BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* started with valid wptr */
 		txdd = (struct txd_desc *)(f->m.va + f->m.wptr);
@@ -3329,11 +3314,7 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 					  f->m.wptr & TXF_WPTR_WR_PTR);
 			}
 		}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0) || (defined(RHEL_RELEASE_CODE) && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7,4)))
 		netif_trans_update(ndev);
-#else
-		ndev->trans_start = jiffies;
-#endif
 		priv->net_stats.tx_packets++;
 		priv->net_stats.tx_bytes += pkt_len;
 		if (priv->tx_level < BDX_MIN_TX_LEVEL) {
@@ -3344,11 +3325,6 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 
 	} while (0);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-	if (spinLocked) {
-		spin_unlock_irqrestore(&priv->tx_lock, flags);
-	}
-#endif
 	return rVal;
 
 }
@@ -3368,11 +3344,8 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 
 	f->m.wptr = READ_REG(priv, f->m.reg_WPTR) & TXF_WPTR_MASK;
 	BDX_ASSERT(f->m.rptr >= f->m.memsz);	/* Started with valid rptr */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-	spin_lock(&priv->tx_lock);
-#else
 	netif_tx_lock(priv->ndev);
-#endif
+
 	while (f->m.wptr != f->m.rptr) {
 		f->m.rptr += BDX_TXF_DESC_SZ;
 		f->m.rptr &= f->m.size_mask;
@@ -3418,12 +3391,7 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 			 priv->ndev->name, priv->tx_level);
 		netif_wake_queue(priv->ndev);
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-	spin_unlock(&priv->tx_lock);
-#else
 	netif_tx_unlock(priv->ndev);
-#endif
-
 }
 
 /* bdx_tx_free_skbs - Free all skbs from TXD fifo.
@@ -4007,10 +3975,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	 * between transmit and TX irq cleanup.  In addition
 	 * set multicast list callback has to use priv->tx_lock.
 	 */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7,0)
-	spin_lock_init(&priv->tx_lock);
-	ndev->features |= NETIF_F_LLTX;
-#endif
 	ndev->hw_features |= ndev->features;
 
 	if (bdx_read_mac(priv)) {
