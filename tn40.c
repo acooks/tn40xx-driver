@@ -3906,10 +3906,9 @@ static int __init bdx_probe(struct pci_dev *pdev,
 			       NETIF_F_TSO | NETIF_F_GRO | NETIF_F_RXHASH);
 	if (pci_using_dac)
 		ndev->vlan_features |= NETIF_F_HIGHDMA;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	ndev->min_mtu = ETH_ZLEN;
 	ndev->max_mtu = BDX_MAX_MTU;
-#endif
+
 	/************** PRIV ****************/
 	priv = nic->priv = netdev_priv(ndev);
 
