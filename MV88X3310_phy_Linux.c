@@ -95,7 +95,7 @@ static void MV88X3310_set_link_mode(unsigned long *bits, u32 speed)
 	__set_bit(ETHTOOL_LINK_MODE_TP_BIT, bits);;
 	if (speed == MV88X3310_ALL_SPEEDS) {
 		__set_bit(ETHTOOL_LINK_MODE_10000baseT_Full_BIT, bits);
-#if (!defined(RHEL_RELEASE_CODE)) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 		__set_bit(ETHTOOL_LINK_MODE_5000baseT_Full_BIT, bits);
 		__set_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT, bits);
 #endif
@@ -160,14 +160,14 @@ int MV88X3310_set_link_ksettings(struct net_device *netdev,
 			break;
 
 		case 5000:	/*5G */
-#if (!defined(RHEL_RELEASE_CODE)) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 			MV88X3310_set_link_mode(priv->link_advertising,
 						ETHTOOL_LINK_MODE_5000baseT_Full_BIT);
 #endif
 			break;
 
 		case 2500:	/*2.5G */
-#if (!defined(RHEL_RELEASE_CODE)) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 			MV88X3310_set_link_mode(priv->link_advertising,
 						ETHTOOL_LINK_MODE_2500baseT_Full_BIT);
 #endif

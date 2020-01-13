@@ -914,10 +914,6 @@ struct txf_desc {
 #define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
                   netif_napi_add(dev, napi, poll, weight)
 
-#ifndef RHEL_RELEASE_VERSION
-#define RHEL_RELEASE_VERSION(a,b) (((a) << 8) + (b))
-#endif
-
 /*
  * Note: 32 bit  kernels use 16 bits for page_offset. Do not increase
  *       LUXOR__MAX_PAGE_SIZE beyind 64K!
@@ -928,23 +924,12 @@ struct txf_desc {
 #define LUXOR__MAX_PAGE_SIZE    0x10000
 #endif
 
-#if (defined(RHEL_RELEASE_CODE) && \
-     (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,4)) && \
-     (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(7,0)))
-#define RHEL6_ETHTOOL_OPS_EXT_STRUCT
-#endif /* RHEL >= 6.4 && RHEL < 7.0 */
 #if defined(NETIF_F_GRO)
 #define LUXOR__VLAN_RECEIVE(napi, grp, vlan_tci, skb) \
     vlan_gro_receive(napi, grp, vlan_tci, skb)
 #define LUXOR__RECEIVE(napi, skb)  \
     napi_gro_receive(napi, skb)
-#if (defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,8)))
-#define LUXOR__GRO_FLUSH(napi)  napi_gro_flush(napi,0)
-#elif defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE >= 1285)
-#define LUXOR__GRO_FLUSH(napi)  napi_gro_flush(napi)
-#else
 #define LUXOR__GRO_FLUSH(napi)
-#endif
 #define IS_GRO(ndev)            ((ndev->features & NETIF_F_GRO) != 0)
 #else
 #define NETIF_F_GRO         0

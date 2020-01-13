@@ -149,10 +149,6 @@ static int bdx_resume(struct device *dev);
  *
  * @priv       - NIC private structure
  */
-#if defined(RHEL_RELEASE_CODE)
-#define prandom_seed(seed)
-#define prandom_u32 random32
-#endif
 static int bdx_init_rss(struct bdx_priv *priv)
 {
 	int i;
@@ -2642,9 +2638,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 	int done = 0;
 	struct rxdb *db = NULL;
 
-#if (!defined(RHEL_RELEASE_CODE) && (LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)) || (defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(7,5))))
-	priv->ndev->last_rx = jiffies;
-#endif
 	f->m.wptr = READ_REG(priv, f->m.reg_WPTR) & TXF_WPTR_WR_PTR;
 	size = f->m.wptr - f->m.rptr;
 	if (size < 0) {
@@ -2802,9 +2795,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 
 #if defined(USE_RSS)
 		skb->hash = CPU_CHIP_SWAP32(rxdd->rss_hash);
-#if !defined(RHEL_RELEASE_CODE)
 		skb->l4_hash = 1;
-#endif
 		pr_debug("rxhash    = 0x%x\n", skb->hash);
 #endif /* USE_RSS */
 		priv->net_stats.rx_bytes += len;
@@ -3704,13 +3695,7 @@ static const struct net_device_ops bdx_netdev_ops = {
 	.ndo_do_ioctl = bdx_ioctl,
 	.ndo_set_rx_mode = bdx_setmulti,
 	.ndo_get_stats = bdx_get_stats,
-#if defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE>=RHEL_RELEASE_VERSION(8,0))
 	.ndo_change_mtu = bdx_change_mtu,
-#elif defined(RHEL_RELEASE_CODE) && (RHEL_RELEASE_CODE>=RHEL_RELEASE_VERSION(7,5))
-	.ndo_change_mtu_rh74 = bdx_change_mtu,
-#else
-	.ndo_change_mtu = bdx_change_mtu,
-#endif
 	.ndo_set_mac_address = bdx_set_mac,
 	.ndo_vlan_rx_add_vid = bdx_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid = bdx_vlan_rx_kill_vid,
@@ -4528,7 +4513,7 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 		.set_coalesce = bdx_set_coalesce,
 		.get_ringparam = bdx_get_ringparam,
 		.set_ringparam = bdx_set_ringparam,
-#if defined(_EEE_) && (!defined(RHEL6_ETHTOOL_OPS_EXT_STRUCT))
+#if defined(_EEE_)
 #ifdef ETHTOOL_GEEE
 		.get_eee = bdx_get_eee,
 #endif
@@ -4544,17 +4529,6 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 		.get_ts_info = bdx_get_ts_info,
 #endif
 	};
-#if defined(_EEE_) && (defined(RHEL6_ETHTOOL_OPS_EXT_STRUCT))
-	static struct ethtool_ops_ext bdx_ethtool_ops_ext = {
-#ifdef ETHTOOL_GEEE
-		.get_eee = bdx_get_eee,
-#endif
-#ifdef ETHTOOL_SEEE
-		.set_eee = bdx_set_eee,
-#endif
-	};
-	set_ethtool_ops_ext(netdev, &bdx_ethtool_ops_ext);
-#endif
 
 #define SET_ETHTOOL_OPS(netdev, ops) ((netdev)->ethtool_ops = (ops))
 	SET_ETHTOOL_OPS(netdev, &bdx_ethtool_ops);
