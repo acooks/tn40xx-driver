@@ -205,19 +205,12 @@ struct bdx_device_descr {
 	char *name;
 };
 
-/* Compile Time Switches */
-/* start */
-/*#define USE_TIMERS */
-#define BDX_MSI
-/* end */
-
 #define BDX_DEF_MSG_ENABLE  (NETIF_MSG_DRV   | \
                  NETIF_MSG_PROBE | \
                  NETIF_MSG_LINK)
 
 /* RX copy break size */
 #define BDX_COPYBREAK     	257
-#define BDX_MSI_STRING 		"msi "
 /*
  * netdev tx queue len for Luxor. The default value is 1000.
  * ifconfig eth1 txqueuelen 3000 - to change it at runtime.
@@ -960,53 +953,6 @@ struct txf_desc {
 #endif
 #if !defined(ROUND_UP)
 #define ROUND_UP(n, m)  (((n) + (m - 1)) & ~(m - 1))
-#endif
-
-#if defined(USE_TIMERS)
-#define CLOCK_FREQ  3000000000ULL
-#define CYCLES_2_MSEC   (CLOCK_FREQ/1000)
-#define CYCLES_2_USEC   (CLOCK_FREQ/1000000)
-#define CYCLES_2_NSEC   (CLOCK_FREQ/1000000000)
-#define TIMER_PERIOD    10ULL
-#define TIMER_NAME(t)   t##_timer
-#define RESET_TIMER(t)  (TIMER_NAME(t).time = TIMER_NAME(t).count = 0ULL,    \
-             rdtscll(TIMER_NAME(t).start),               \
-             TIMER_NAME(t).begin = TIMER_NAME(t).start)
-#define PRINT_TIMER(t)  do { if (likely(TIMER_NAME(t).begin > 0))        \
-                printk(KERN_ERR                  \
-                       "%s: time = %llu msec count = %llu "  \
-                       "period = %llu nsec\n",           \
-                       TIMER_NAME(t).name,           \
-                       TIMER_NAME(t).time/CYCLES_2_MSEC,     \
-                       TIMER_NAME(t).count,          \
-                       TIMER_NAME(t).time * CYCLES_2_NSEC/   \
-                       MAX(TIMER_NAME(t).count, 1ULL)) ;   \
-                 RESET_TIMER(t) ; } while (0)
-#define DEF_TIMER(t)    static struct timer TIMER_NAME(t) = { .name = #t }
-#define START_TIMER(t)  do { rdtscll(TIMER_NAME(t).start) ;          \
-              if (TIMER_NAME(t).start > TIMER_NAME(t).begin +    \
-                  TIMER_PERIOD*CLOCK_FREQ)               \
-                  PRINT_TIMER(t) ;                   \
-              ++TIMER_NAME(t).count ; } while(0)
-#define END_TIMER(t)    do { rdtscll(TIMER_NAME(t).stop),            \
-                 TIMER_NAME(t).time += TIMER_NAME(t).stop -      \
-                 TIMER_NAME(t).start ; }                 \
-            while ((0))
-
-struct timer {
-	u64 begin;
-	u64 start;
-	u64 stop;
-	u64 time;
-	u64 count;
-	char *name;
-};
-#else
-#define DEF_TIMER(name)
-#define START_TIMER(t)
-#define END_TIMER(t)
-#define RESET_TIMER(t)
-#define PRINT_TIMER(t)
 #endif
 
 u32 bdx_mdio_get(struct bdx_priv *priv);
