@@ -292,8 +292,6 @@ enum { IRQ_INTX, IRQ_MSI, IRQ_MSIX };
 #define INT_REG_VAL(coal, coal_rc, rxf_th, pck_th)  \
     ((coal) | ((coal_rc) << 15) | ((rxf_th) << 16) | ((pck_th) << 20))
 
-/*#define RX_REUSE_PAGES */
-
 struct fifo {
 	dma_addr_t da;		/* Physical address of fifo (used by HW) */
 	char *va;		/* Virtual address of fifo (used by SW) */
@@ -324,22 +322,16 @@ struct rxd_fifo {
 };
 
 struct bdx_page {
-#ifdef RX_REUSE_PAGES
 	struct list_head free;
 	int ref_count;
 	int reuse_tries;
 	int page_index;
 	char status;
-#endif
 	struct page *page;
 	u64 dma;
 };
 struct rx_map {
-#ifdef RX_REUSE_PAGES
 	struct bdx_page *bdx_page;
-#else
-	struct bdx_page bdx_page;
-#endif
 	u64 dma;
 	struct sk_buff *skb;
 	u32 off;
@@ -445,7 +437,6 @@ struct bdx_rx_page_table {
 	int page_size;
 	int buf_size;
 	struct bdx_page *bdx_pages;
-#ifdef RX_REUSE_PAGES
 	int nPages;
 	int nFrees;
 	int max_frees;
@@ -453,8 +444,6 @@ struct bdx_rx_page_table {
 	gfp_t gfp_mask;
 	int nBufInPage;
 	struct list_head free_list;
-#endif
-
 };
 
 struct bdx_priv {

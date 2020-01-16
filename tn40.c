@@ -1752,7 +1752,6 @@ static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 	}
 }
 
-#ifdef RX_REUSE_PAGES
 
 static void dbg_printRxPage(char newLine, struct bdx_page *bdx_page)
 {
@@ -2040,116 +2039,6 @@ static void bdx_rx_set_dm_page(register struct rx_map *dm,
 	dm->bdx_page = bdx_page;
 
 }
-
-#else /* without RX_REUSE_PAGES */
-
-static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
-{
-	return &dm->bdx_page;
-
-}
-
-static int bdx_rx_alloc_pages(struct bdx_priv *priv)
-{
-	struct rxf_fifo *f = &priv->rxf_fifo0;
-	int rVal = 0;
-
-	priv->rx_page_table.buf_size = ROUND_UP(f->m.pktsz, SMP_CACHE_BYTES);
-	priv->rx_page_table.bdx_pages = vmalloc(sizeof(struct bdx_page));
-	if (priv->rx_page_table.bdx_pages == NULL) {
-		pr_err("Cannot allocate page table !\n");
-		rVal = -1;
-	}
-
-	return rVal;
-
-}
-
-static void bdx_rx_free_pages(struct bdx_priv *priv)
-{
-
-	vfree(priv->rx_page_table.bdx_pages);
-
-}
-
-static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
-{
-	gfp_t gfp_mask;
-	int page_size = priv->rx_page_table.page_size;
-	struct bdx_page *bdx_page = priv->rx_page_table.bdx_pages;
-
-	gfp_mask = GFP_ATOMIC | __GFP_NOWARN;
-	if (page_size > PAGE_SIZE) {
-		gfp_mask |= __GFP_COMP;
-	}
-	bdx_page->page = alloc_pages(gfp_mask, get_order(page_size));
-	if (likely(bdx_page->page != NULL)) {
-		pr_debug("map page %p size %d\n", bdx_page->page, page_size);
-		bdx_page->dma =
-		    pci_map_page(priv->pdev, bdx_page->page, 0L, page_size,
-				 PCI_DMA_FROMDEVICE);
-		if (unlikely(pci_dma_mapping_error(priv->pdev, bdx_page->dma))) {
-			pr_err("Failed to map page %p !\n", bdx_page->page);
-			__free_pages(bdx_page->page, get_order(page_size));
-			bdx_page = NULL;
-		}
-	} else {
-		bdx_page = NULL;
-	}
-
-	return bdx_page;
-
-}
-
-static int bdx_rx_get_page_size(struct bdx_priv *priv)
-{
-	struct rxdb *db = priv->rxdb0;
-	int dno = bdx_rxdb_available(db) - 1;
-
-	priv->rx_page_table.page_size =
-	    MIN(LUXOR__MAX_PAGE_SIZE, dno * priv->rx_page_table.buf_size);
-
-	return priv->rx_page_table.page_size;
-
-}
-
-static void bdx_rx_reuse_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-
-	pr_debug("dm size %d off %d dma %p\n", dm->size, dm->off,
-		 (void *)dm->dma);
-	if (dm->off == 0) {
-		pr_debug("umap page %p size %d\n", (void *)dm->dma, dm->size);
-		pci_unmap_page(priv->pdev, dm->dma, dm->size,
-			       PCI_DMA_FROMDEVICE);
-	}
-
-}
-
-static void bdx_rx_ref_page(struct bdx_page *bdx_page)
-{
-	get_page(bdx_page->page);
-
-}
-
-static void bdx_rx_put_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-	if (dm->off == 0) {
-		pci_unmap_page(priv->pdev, dm->dma, dm->size,
-			       PCI_DMA_FROMDEVICE);
-	}
-	put_page(dm->bdx_page.page);
-
-}
-
-static void bdx_rx_set_dm_page(register struct rx_map *dm,
-			       struct bdx_page *bdx_page)
-{
-	dm->bdx_page.page = bdx_page->page;
-
-}
-
-#endif /* RX_REUSE_PAGES */
 
 /* bdx_rx_init - Initialize RX all related HW and SW resources
  * @priv       - NIC private structure
@@ -3457,11 +3346,10 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 			DBG_OFF;
 			break;
 
-#ifdef RX_REUSE_PAGES
 		case DBG_PRINT_PAGE_TABLE:
 			dbg_printRxPageTable(priv);
 			break;
-#endif
+
 		default:
 			dbg_printIoctl();
 			break;
