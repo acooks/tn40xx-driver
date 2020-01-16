@@ -1741,7 +1741,7 @@ static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 /*************************************************************************
  *     Rx Engine                             *
  *************************************************************************/
-#ifdef USE_PAGED_BUFFERS
+
 
 static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 			u32 rxd_val1, u16 rxd_vlan)
@@ -2041,7 +2041,7 @@ static void bdx_rx_set_dm_page(register struct rx_map *dm,
 
 }
 
-#else /* USE_PAGED_BUFFERS without RX_REUSE_PAGES */
+#else /* without RX_REUSE_PAGES */
 
 static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
 {
@@ -2147,42 +2147,6 @@ static void bdx_rx_set_dm_page(register struct rx_map *dm,
 {
 	dm->bdx_page.page = bdx_page->page;
 
-}
-
-#endif /* RX_REUSE_PAGES */
-
-#else /* not USE_PAGED_BUFFERS and not RX_REUSE_PAGES */
-
-static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
-			u32 rxd_val1, u16 rxd_vlan)
-{
-	if (GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
-		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
-				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
-	}
-}
-
-static int bdx_rx_get_page_size(struct bdx_priv *priv)
-{
-	return 0;
-}
-
-static void bdx_rx_put_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-}
-
-static int bdx_rx_alloc_pages(struct bdx_priv *priv)
-{
-	return 0;
-}
-
-static void bdx_rx_free_pages(struct bdx_priv *priv)
-{
-}
-
-static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
-{
-	return NULL;
 }
 
 #endif /* RX_REUSE_PAGES */
@@ -2306,14 +2270,10 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	struct rxdb *db = priv->rxdb0;
 	struct rxf_fifo *f = &priv->rxf_fifo0;
 	int nPages = 0;
-#ifdef USE_PAGED_BUFFERS
 	struct bdx_page *bdx_page = NULL;
 	int buf_size = priv->rx_page_table.buf_size;
 	int page_off = -1;
 	u64 dma = 0ULL;
-#else
-	struct sk_buff *skb = NULL;
-#endif
 
 	pr_debug("_bdx_rx_alloc_buffers is at %p\n", _bdx_rx_alloc_buffers);
 	dno = bdx_rxdb_available(db) - 1;
@@ -2321,7 +2281,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	pr_debug("dno %d page_size %d buf_size %d\n", dno, page_size,
 		 priv->rx_page_table.buf_size);
 	while (dno > 0) {
-#ifdef USE_PAGED_BUFFERS
 
 		/*
 		 * Note: We allocate large pages (i.e. 64KB) and store
@@ -2365,27 +2324,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 			 (void *)dm->dma);
 		page_off -= buf_size;
 
-#else
-		rxfd = (struct rxf_desc *)(f->m.va + f->m.wptr);
-		idx = bdx_rxdb_alloc_elem(db);
-		dm = bdx_rxdb_addr_elem(db, idx);
-		if (!
-		    (skb =
-		     netdev_alloc_skb(priv->ndev,
-				      f->m.pktsz + SMP_CACHE_BYTES))) {
-			pr_err("NO MEM: dev_alloc_skb failed\n");
-			break;
-		}
-		skb->dev = priv->ndev;
-		skb_reserve(skb,
-			    (PTR_ALIGN(skb->data, SMP_CACHE_BYTES) -
-			     skb->data));
-		dm->skb = skb;
-		dm->dma =
-		    pci_map_single(priv->pdev, skb->data, f->m.pktsz,
-				   PCI_DMA_FROMDEVICE);
-		nPages += 1;
-#endif /* USE_PAGED_BUFFERS */
 		rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO =1 BC =3 */
 		rxfd->va_lo = idx;
 		rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
@@ -2481,13 +2419,11 @@ static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 
 }
 
-#if defined(USE_PAGED_BUFFERS)
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 				int off, int len)
 {
 	skb_add_rx_frag(skb, 0, page, off, len, SKB_TRUESIZE(len));
 }
-#endif
 
 #define PKT_ERR_LEN		(70)
 
@@ -2636,14 +2572,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 			     ((rxd_err == 0x10) && (len < PKT_ERR_LEN) && (pkt_id == 1))	/* TCP checksum error */
 			    )
 			    ) {
-#if defined (USE_PAGED_BUFFERS)
 				pkt =
 				    ((char *)page_address(bdx_page->page) +
 				     dm->off);
-#else
-				pkt = db->pkt;
-				skb_copy_from_linear_data(dm->skb, pkt, len);
-#endif
 				bErr = bdx_rx_error(pkt, rxd_err, len);
 			}
 			if (bErr) {
@@ -2657,7 +2588,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		pr_debug("tn40xx: * RX %d *\n", len);
 		rxf_fifo = &priv->rxf_fifo0;
 
-#if defined(USE_PAGED_BUFFERS)
 		/*
 		 * Note: In this case we obtain a pre-allocated skb
 		 *       from napi. We add a frag with the
@@ -2681,47 +2611,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		napi_gro_frags(&priv->napi);
 
 		bdx_rx_reuse_page(priv, dm);
-#else /* USE_PAGED_BUFFERS */
-		{
-			struct sk_buff *skb2;
-
-			/* Handle SKB */
-			skb = dm->skb;
-			prefetch(skb);
-			prefetch(skb->data);
-			/* IS THIS A SMALL PACKET? */
-			if (len < BDX_COPYBREAK &&
-			    (skb2 = dev_alloc_skb(len + NET_IP_ALIGN))) {
-				/* YES, COPY PACKET TO A SMALL SKB AND REUSE THE CURRENT SKB */
-				skb_reserve(skb2, NET_IP_ALIGN);
-				pci_dma_sync_single_for_cpu(priv->pdev, dm->dma,
-							    rxf_fifo->m.pktsz,
-							    PCI_DMA_FROMDEVICE);
-				memcpy(skb2->data, skb->data, len);
-				bdx_recycle_skb(priv, rxdd);
-				skb = skb2;
-			} else {
-				/* NO, UNMAP THE SKB AND FREE THE FIFO ELEMENT */
-				pci_unmap_single(priv->pdev, dm->dma,
-						 rxf_fifo->m.pktsz,
-						 PCI_DMA_FROMDEVICE);
-				bdx_rxdb_free_elem(db, rxdd->va_lo);
-			}
-			/* UPDATE SKB FIELDS */
-			skb_put(skb, len);
-			skb->dev = priv->ndev;
-			/*
-			 * Note: Non-IP packets aren't checksum-offloaded.
-			 */
-			skb->ip_summed =
-			    (pkt_id ==
-			     0) ? CHECKSUM_NONE : CHECKSUM_UNNECESSARY;
-			skb->protocol = eth_type_trans(skb, priv->ndev);
-			/* PROCESS PACKET */
-			bdx_rx_vlan(priv, skb, rxd_val1, rxd_vlan);
-			LUXOR__RECEIVE(&priv->napi, skb);
-		}
-#endif /* USE_PAGED_BUFFERS */
 
 #if defined(USE_RSS)
 		skb->hash = CPU_CHIP_SWAP32(rxdd->rss_hash);

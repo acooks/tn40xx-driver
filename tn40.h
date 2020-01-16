@@ -292,11 +292,7 @@ enum { IRQ_INTX, IRQ_MSI, IRQ_MSIX };
 #define INT_REG_VAL(coal, coal_rc, rxf_th, pck_th)  \
     ((coal) | ((coal_rc) << 15) | ((rxf_th) << 16) | ((pck_th) << 20))
 
-#define USE_PAGED_BUFFERS             1
 /*#define RX_REUSE_PAGES */
-#if defined(RX_REUSE_PAGES) && !defined(USE_PAGED_BUFFERS)
-#define USE_PAGED_BUFFERS
-#endif
 
 struct fifo {
 	dma_addr_t da;		/* Physical address of fifo (used by HW) */
@@ -346,10 +342,8 @@ struct rx_map {
 #endif
 	u64 dma;
 	struct sk_buff *skb;
-#ifdef USE_PAGED_BUFFERS
 	u32 off;
 	u32 size;		/* Mapped area (i.e. page) size */
-#endif
 };
 
 struct rxdb {
