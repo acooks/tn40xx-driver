@@ -413,14 +413,10 @@ struct bdx_phy_operations {
 	int (*get_settings)(struct net_device *, struct ethtool_cmd *);
 	void (*ledset)(struct bdx_priv *, enum PHY_LEDS_OP);
 	int (*set_settings)(struct net_device *, struct ethtool_cmd *);
-#ifdef ETHTOOL_GLINKSETTINGS
 	int (*get_link_ksettings)(struct net_device *,
 				  struct ethtool_link_ksettings *);
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 	int (*set_link_ksettings)(struct net_device *,
 				  const struct ethtool_link_ksettings *);
-#endif
 #ifdef _EEE_
 #ifdef ETHTOOL_GEEE
 	int (*get_eee)(struct net_device *, struct ethtool_eee *);

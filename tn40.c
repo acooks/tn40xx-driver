@@ -3712,8 +3712,6 @@ static const char
 	"OutOctects",		/* 0x73F0 */
 };
 
-#ifdef ETHTOOL_GLINKSETTINGS
-
 int bdx_get_link_ksettings(struct net_device *netdev,
 			   struct ethtool_link_ksettings *cmd)
 {
@@ -3733,40 +3731,6 @@ int bdx_get_link_ksettings(struct net_device *netdev,
 
 }
 
-#else
-
-/*
- * bdx_get_settings - Get device-specific settings.
- *
- * @netdev
- * @ecmd
- */
-static int bdx_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	u32 rdintcm;
-	u32 tdintcm;
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	rdintcm = priv->rdintcm;
-	tdintcm = priv->tdintcm;
-
-	priv->phy_ops.get_settings(netdev, ecmd);
-	ecmd->phy_address = priv->port;
-
-	/* PCK_TH measures in multiples of FIFO bytes
-	   We translate to packets */
-	ecmd->maxtxpkt =
-	    ((GET_PCK_TH(tdintcm) * PCK_TH_MULT) / BDX_TXF_DESC_SZ);
-	ecmd->maxrxpkt =
-	    ((GET_PCK_TH(rdintcm) * PCK_TH_MULT) / sizeof(struct rxf_desc));
-
-	return 0;
-}
-
-#endif
-
-#ifdef ETHTOOL_SLINKSETTINGS
-
 int bdx_set_link_ksettings(struct net_device *netdev,
 			   const struct ethtool_link_ksettings *cmd)
 {
@@ -3775,26 +3739,6 @@ int bdx_set_link_ksettings(struct net_device *netdev,
 	return priv->phy_ops.set_link_ksettings(netdev, cmd);
 
 }
-
-#else
-
-/*
- * bdx_set_settings - set device-specific settings.
- *
- * @netdev
- * @ecmd
- */
-static int bdx_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	pr_debug("ecmd->cmd=%x\n", ecmd->cmd);
-
-	return priv->phy_ops.set_settings(netdev, ecmd);
-
-}
-
-#endif
 
 /*
  * bdx_get_drvinfo - Report driver information
@@ -4143,16 +4087,8 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 {
 
 	static struct ethtool_ops bdx_ethtool_ops = {
-#ifdef ETHTOOL_GLINKSETTINGS
 		.get_link_ksettings = bdx_get_link_ksettings,
-#else
-		.get_settings = bdx_get_settings,
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 		.set_link_ksettings = bdx_set_link_ksettings,
-#else
-		.set_settings = bdx_set_settings,
-#endif
 		.get_drvinfo = bdx_get_drvinfo,
 		.get_link = ethtool_op_get_link,
 		.get_coalesce = bdx_get_coalesce,
