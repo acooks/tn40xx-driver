@@ -292,12 +292,6 @@ enum { IRQ_INTX, IRQ_MSI, IRQ_MSIX };
 #define INT_REG_VAL(coal, coal_rc, rxf_th, pck_th)  \
     ((coal) | ((coal_rc) << 15) | ((rxf_th) << 16) | ((pck_th) << 20))
 
-#define USE_PAGED_BUFFERS             1
-/*#define RX_REUSE_PAGES */
-#if defined(RX_REUSE_PAGES) && !defined(USE_PAGED_BUFFERS)
-#define USE_PAGED_BUFFERS
-#endif
-
 struct fifo {
 	dma_addr_t da;		/* Physical address of fifo (used by HW) */
 	char *va;		/* Virtual address of fifo (used by SW) */
@@ -328,28 +322,20 @@ struct rxd_fifo {
 };
 
 struct bdx_page {
-#ifdef RX_REUSE_PAGES
 	struct list_head free;
 	int ref_count;
 	int reuse_tries;
 	int page_index;
 	char status;
-#endif
 	struct page *page;
 	u64 dma;
 };
 struct rx_map {
-#ifdef RX_REUSE_PAGES
 	struct bdx_page *bdx_page;
-#else
-	struct bdx_page bdx_page;
-#endif
 	u64 dma;
 	struct sk_buff *skb;
-#ifdef USE_PAGED_BUFFERS
 	u32 off;
 	u32 size;		/* Mapped area (i.e. page) size */
-#endif
 };
 
 struct rxdb {
@@ -427,14 +413,10 @@ struct bdx_phy_operations {
 	int (*get_settings)(struct net_device *, struct ethtool_cmd *);
 	void (*ledset)(struct bdx_priv *, enum PHY_LEDS_OP);
 	int (*set_settings)(struct net_device *, struct ethtool_cmd *);
-#ifdef ETHTOOL_GLINKSETTINGS
 	int (*get_link_ksettings)(struct net_device *,
 				  struct ethtool_link_ksettings *);
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 	int (*set_link_ksettings)(struct net_device *,
 				  const struct ethtool_link_ksettings *);
-#endif
 #ifdef _EEE_
 #ifdef ETHTOOL_GEEE
 	int (*get_eee)(struct net_device *, struct ethtool_eee *);
@@ -451,7 +433,6 @@ struct bdx_rx_page_table {
 	int page_size;
 	int buf_size;
 	struct bdx_page *bdx_pages;
-#ifdef RX_REUSE_PAGES
 	int nPages;
 	int nFrees;
 	int max_frees;
@@ -459,8 +440,6 @@ struct bdx_rx_page_table {
 	gfp_t gfp_mask;
 	int nBufInPage;
 	struct list_head free_list;
-#endif
-
 };
 
 struct bdx_priv {

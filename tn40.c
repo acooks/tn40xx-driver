@@ -1741,7 +1741,7 @@ static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 /*************************************************************************
  *     Rx Engine                             *
  *************************************************************************/
-#ifdef USE_PAGED_BUFFERS
+
 
 static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 			u32 rxd_val1, u16 rxd_vlan)
@@ -1752,7 +1752,6 @@ static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 	}
 }
 
-#ifdef RX_REUSE_PAGES
 
 static void dbg_printRxPage(char newLine, struct bdx_page *bdx_page)
 {
@@ -2041,152 +2040,6 @@ static void bdx_rx_set_dm_page(register struct rx_map *dm,
 
 }
 
-#else /* USE_PAGED_BUFFERS without RX_REUSE_PAGES */
-
-static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
-{
-	return &dm->bdx_page;
-
-}
-
-static int bdx_rx_alloc_pages(struct bdx_priv *priv)
-{
-	struct rxf_fifo *f = &priv->rxf_fifo0;
-	int rVal = 0;
-
-	priv->rx_page_table.buf_size = ROUND_UP(f->m.pktsz, SMP_CACHE_BYTES);
-	priv->rx_page_table.bdx_pages = vmalloc(sizeof(struct bdx_page));
-	if (priv->rx_page_table.bdx_pages == NULL) {
-		pr_err("Cannot allocate page table !\n");
-		rVal = -1;
-	}
-
-	return rVal;
-
-}
-
-static void bdx_rx_free_pages(struct bdx_priv *priv)
-{
-
-	vfree(priv->rx_page_table.bdx_pages);
-
-}
-
-static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
-{
-	gfp_t gfp_mask;
-	int page_size = priv->rx_page_table.page_size;
-	struct bdx_page *bdx_page = priv->rx_page_table.bdx_pages;
-
-	gfp_mask = GFP_ATOMIC | __GFP_NOWARN;
-	if (page_size > PAGE_SIZE) {
-		gfp_mask |= __GFP_COMP;
-	}
-	bdx_page->page = alloc_pages(gfp_mask, get_order(page_size));
-	if (likely(bdx_page->page != NULL)) {
-		pr_debug("map page %p size %d\n", bdx_page->page, page_size);
-		bdx_page->dma =
-		    pci_map_page(priv->pdev, bdx_page->page, 0L, page_size,
-				 PCI_DMA_FROMDEVICE);
-		if (unlikely(pci_dma_mapping_error(priv->pdev, bdx_page->dma))) {
-			pr_err("Failed to map page %p !\n", bdx_page->page);
-			__free_pages(bdx_page->page, get_order(page_size));
-			bdx_page = NULL;
-		}
-	} else {
-		bdx_page = NULL;
-	}
-
-	return bdx_page;
-
-}
-
-static int bdx_rx_get_page_size(struct bdx_priv *priv)
-{
-	struct rxdb *db = priv->rxdb0;
-	int dno = bdx_rxdb_available(db) - 1;
-
-	priv->rx_page_table.page_size =
-	    MIN(LUXOR__MAX_PAGE_SIZE, dno * priv->rx_page_table.buf_size);
-
-	return priv->rx_page_table.page_size;
-
-}
-
-static void bdx_rx_reuse_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-
-	pr_debug("dm size %d off %d dma %p\n", dm->size, dm->off,
-		 (void *)dm->dma);
-	if (dm->off == 0) {
-		pr_debug("umap page %p size %d\n", (void *)dm->dma, dm->size);
-		pci_unmap_page(priv->pdev, dm->dma, dm->size,
-			       PCI_DMA_FROMDEVICE);
-	}
-
-}
-
-static void bdx_rx_ref_page(struct bdx_page *bdx_page)
-{
-	get_page(bdx_page->page);
-
-}
-
-static void bdx_rx_put_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-	if (dm->off == 0) {
-		pci_unmap_page(priv->pdev, dm->dma, dm->size,
-			       PCI_DMA_FROMDEVICE);
-	}
-	put_page(dm->bdx_page.page);
-
-}
-
-static void bdx_rx_set_dm_page(register struct rx_map *dm,
-			       struct bdx_page *bdx_page)
-{
-	dm->bdx_page.page = bdx_page->page;
-
-}
-
-#endif /* RX_REUSE_PAGES */
-
-#else /* not USE_PAGED_BUFFERS and not RX_REUSE_PAGES */
-
-static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
-			u32 rxd_val1, u16 rxd_vlan)
-{
-	if (GET_RXD_VTAG(rxd_val1)) {	/* Vlan case */
-		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
-				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
-	}
-}
-
-static int bdx_rx_get_page_size(struct bdx_priv *priv)
-{
-	return 0;
-}
-
-static void bdx_rx_put_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-}
-
-static int bdx_rx_alloc_pages(struct bdx_priv *priv)
-{
-	return 0;
-}
-
-static void bdx_rx_free_pages(struct bdx_priv *priv)
-{
-}
-
-static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
-{
-	return NULL;
-}
-
-#endif /* RX_REUSE_PAGES */
-
 /* bdx_rx_init - Initialize RX all related HW and SW resources
  * @priv       - NIC private structure
  *
@@ -2306,14 +2159,10 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	struct rxdb *db = priv->rxdb0;
 	struct rxf_fifo *f = &priv->rxf_fifo0;
 	int nPages = 0;
-#ifdef USE_PAGED_BUFFERS
 	struct bdx_page *bdx_page = NULL;
 	int buf_size = priv->rx_page_table.buf_size;
 	int page_off = -1;
 	u64 dma = 0ULL;
-#else
-	struct sk_buff *skb = NULL;
-#endif
 
 	pr_debug("_bdx_rx_alloc_buffers is at %p\n", _bdx_rx_alloc_buffers);
 	dno = bdx_rxdb_available(db) - 1;
@@ -2321,7 +2170,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	pr_debug("dno %d page_size %d buf_size %d\n", dno, page_size,
 		 priv->rx_page_table.buf_size);
 	while (dno > 0) {
-#ifdef USE_PAGED_BUFFERS
 
 		/*
 		 * Note: We allocate large pages (i.e. 64KB) and store
@@ -2365,27 +2213,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 			 (void *)dm->dma);
 		page_off -= buf_size;
 
-#else
-		rxfd = (struct rxf_desc *)(f->m.va + f->m.wptr);
-		idx = bdx_rxdb_alloc_elem(db);
-		dm = bdx_rxdb_addr_elem(db, idx);
-		if (!
-		    (skb =
-		     netdev_alloc_skb(priv->ndev,
-				      f->m.pktsz + SMP_CACHE_BYTES))) {
-			pr_err("NO MEM: dev_alloc_skb failed\n");
-			break;
-		}
-		skb->dev = priv->ndev;
-		skb_reserve(skb,
-			    (PTR_ALIGN(skb->data, SMP_CACHE_BYTES) -
-			     skb->data));
-		dm->skb = skb;
-		dm->dma =
-		    pci_map_single(priv->pdev, skb->data, f->m.pktsz,
-				   PCI_DMA_FROMDEVICE);
-		nPages += 1;
-#endif /* USE_PAGED_BUFFERS */
 		rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO =1 BC =3 */
 		rxfd->va_lo = idx;
 		rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
@@ -2481,13 +2308,11 @@ static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
 
 }
 
-#if defined(USE_PAGED_BUFFERS)
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 				int off, int len)
 {
 	skb_add_rx_frag(skb, 0, page, off, len, SKB_TRUESIZE(len));
 }
-#endif
 
 #define PKT_ERR_LEN		(70)
 
@@ -2636,14 +2461,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 			     ((rxd_err == 0x10) && (len < PKT_ERR_LEN) && (pkt_id == 1))	/* TCP checksum error */
 			    )
 			    ) {
-#if defined (USE_PAGED_BUFFERS)
 				pkt =
 				    ((char *)page_address(bdx_page->page) +
 				     dm->off);
-#else
-				pkt = db->pkt;
-				skb_copy_from_linear_data(dm->skb, pkt, len);
-#endif
 				bErr = bdx_rx_error(pkt, rxd_err, len);
 			}
 			if (bErr) {
@@ -2657,7 +2477,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		pr_debug("tn40xx: * RX %d *\n", len);
 		rxf_fifo = &priv->rxf_fifo0;
 
-#if defined(USE_PAGED_BUFFERS)
 		/*
 		 * Note: In this case we obtain a pre-allocated skb
 		 *       from napi. We add a frag with the
@@ -2681,47 +2500,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		napi_gro_frags(&priv->napi);
 
 		bdx_rx_reuse_page(priv, dm);
-#else /* USE_PAGED_BUFFERS */
-		{
-			struct sk_buff *skb2;
-
-			/* Handle SKB */
-			skb = dm->skb;
-			prefetch(skb);
-			prefetch(skb->data);
-			/* IS THIS A SMALL PACKET? */
-			if (len < BDX_COPYBREAK &&
-			    (skb2 = dev_alloc_skb(len + NET_IP_ALIGN))) {
-				/* YES, COPY PACKET TO A SMALL SKB AND REUSE THE CURRENT SKB */
-				skb_reserve(skb2, NET_IP_ALIGN);
-				pci_dma_sync_single_for_cpu(priv->pdev, dm->dma,
-							    rxf_fifo->m.pktsz,
-							    PCI_DMA_FROMDEVICE);
-				memcpy(skb2->data, skb->data, len);
-				bdx_recycle_skb(priv, rxdd);
-				skb = skb2;
-			} else {
-				/* NO, UNMAP THE SKB AND FREE THE FIFO ELEMENT */
-				pci_unmap_single(priv->pdev, dm->dma,
-						 rxf_fifo->m.pktsz,
-						 PCI_DMA_FROMDEVICE);
-				bdx_rxdb_free_elem(db, rxdd->va_lo);
-			}
-			/* UPDATE SKB FIELDS */
-			skb_put(skb, len);
-			skb->dev = priv->ndev;
-			/*
-			 * Note: Non-IP packets aren't checksum-offloaded.
-			 */
-			skb->ip_summed =
-			    (pkt_id ==
-			     0) ? CHECKSUM_NONE : CHECKSUM_UNNECESSARY;
-			skb->protocol = eth_type_trans(skb, priv->ndev);
-			/* PROCESS PACKET */
-			bdx_rx_vlan(priv, skb, rxd_val1, rxd_vlan);
-			LUXOR__RECEIVE(&priv->napi, skb);
-		}
-#endif /* USE_PAGED_BUFFERS */
 
 #if defined(USE_RSS)
 		skb->hash = CPU_CHIP_SWAP32(rxdd->rss_hash);
@@ -3568,11 +3346,10 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 			DBG_OFF;
 			break;
 
-#ifdef RX_REUSE_PAGES
 		case DBG_PRINT_PAGE_TABLE:
 			dbg_printRxPageTable(priv);
 			break;
-#endif
+
 		default:
 			dbg_printIoctl();
 			break;
@@ -3935,8 +3712,6 @@ static const char
 	"OutOctects",		/* 0x73F0 */
 };
 
-#ifdef ETHTOOL_GLINKSETTINGS
-
 int bdx_get_link_ksettings(struct net_device *netdev,
 			   struct ethtool_link_ksettings *cmd)
 {
@@ -3956,40 +3731,6 @@ int bdx_get_link_ksettings(struct net_device *netdev,
 
 }
 
-#else
-
-/*
- * bdx_get_settings - Get device-specific settings.
- *
- * @netdev
- * @ecmd
- */
-static int bdx_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	u32 rdintcm;
-	u32 tdintcm;
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	rdintcm = priv->rdintcm;
-	tdintcm = priv->tdintcm;
-
-	priv->phy_ops.get_settings(netdev, ecmd);
-	ecmd->phy_address = priv->port;
-
-	/* PCK_TH measures in multiples of FIFO bytes
-	   We translate to packets */
-	ecmd->maxtxpkt =
-	    ((GET_PCK_TH(tdintcm) * PCK_TH_MULT) / BDX_TXF_DESC_SZ);
-	ecmd->maxrxpkt =
-	    ((GET_PCK_TH(rdintcm) * PCK_TH_MULT) / sizeof(struct rxf_desc));
-
-	return 0;
-}
-
-#endif
-
-#ifdef ETHTOOL_SLINKSETTINGS
-
 int bdx_set_link_ksettings(struct net_device *netdev,
 			   const struct ethtool_link_ksettings *cmd)
 {
@@ -3998,26 +3739,6 @@ int bdx_set_link_ksettings(struct net_device *netdev,
 	return priv->phy_ops.set_link_ksettings(netdev, cmd);
 
 }
-
-#else
-
-/*
- * bdx_set_settings - set device-specific settings.
- *
- * @netdev
- * @ecmd
- */
-static int bdx_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	pr_debug("ecmd->cmd=%x\n", ecmd->cmd);
-
-	return priv->phy_ops.set_settings(netdev, ecmd);
-
-}
-
-#endif
 
 /*
  * bdx_get_drvinfo - Report driver information
@@ -4366,16 +4087,8 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 {
 
 	static struct ethtool_ops bdx_ethtool_ops = {
-#ifdef ETHTOOL_GLINKSETTINGS
 		.get_link_ksettings = bdx_get_link_ksettings,
-#else
-		.get_settings = bdx_get_settings,
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 		.set_link_ksettings = bdx_set_link_ksettings,
-#else
-		.set_settings = bdx_set_settings,
-#endif
 		.get_drvinfo = bdx_get_drvinfo,
 		.get_link = ethtool_op_get_link,
 		.get_coalesce = bdx_get_coalesce,
