@@ -1,38 +1,5 @@
 #include "tn40.h"
 
-int QT2025_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	ecmd->supported =
-	    (SUPPORTED_10000baseT_Full | SUPPORTED_FIBRE | SUPPORTED_Pause);
-	ecmd->advertising = (ADVERTISED_10000baseT_Full | ADVERTISED_Pause);
-	if (READ_REG(priv, regMAC_LNK_STAT) & MAC_LINK_STAT) {
-		ecmd->speed = priv->link_speed;
-	} else {
-		ecmd->speed = 0;
-	}
-	ecmd->duplex = DUPLEX_FULL;
-	ecmd->port = PORT_FIBRE;
-	ecmd->transceiver = XCVR_EXTERNAL;
-	ecmd->autoneg = AUTONEG_DISABLE;
-
-	return 0;
-
-}
-
-int QT2025_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	pr_err("%s Does not support ethtool -s option\n", priv->ndev->name);
-
-	return -EPERM;
-
-}
-
-#ifdef ETHTOOL_GLINKSETTINGS
-
 int QT2025_get_link_ksettings(struct net_device *netdev,
 			      struct ethtool_link_ksettings *cmd)
 {
@@ -53,12 +20,7 @@ int QT2025_get_link_ksettings(struct net_device *netdev,
 	       sizeof(cmd->link_modes.advertising));
 
 	return 0;
-
 }
-
-#endif
-
-#ifdef ETHTOOL_SLINKSETTINGS
 
 int QT2025_set_link_ksettings(struct net_device *netdev,
 			      const struct ethtool_link_ksettings *cmd)
@@ -68,20 +30,11 @@ int QT2025_set_link_ksettings(struct net_device *netdev,
 	pr_err("%s Does not support ethtool -s option\n", priv->ndev->name);
 
 	return -EPERM;
-
 }
 
-#endif
 
 __init void QT2025_register_settings(struct bdx_priv *priv)
 {
-	priv->phy_ops.get_settings = QT2025_get_settings;
-	priv->phy_ops.set_settings = QT2025_set_settings;
-#ifdef ETHTOOL_GLINKSETTINGS
 	priv->phy_ops.get_link_ksettings = QT2025_get_link_ksettings;
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 	priv->phy_ops.set_link_ksettings = QT2025_set_link_ksettings;
-#endif
-
 }
