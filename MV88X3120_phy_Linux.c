@@ -6,81 +6,6 @@ int MV88X3120_set_speed(struct bdx_priv *priv, s32 speed);
 #define MV88X3120_EEE_1G			(0x0004)	/*Support EEE for 1GBASE-T */
 #define MV88X3120_EEE_100M			(0x0002)	/*Support EEE for 100MBASE-T */
 
-int MV88X3120_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	ecmd->supported =
-	    (SUPPORTED_10000baseT_Full | SUPPORTED_1000baseT_Full |
-	     SUPPORTED_100baseT_Full | SUPPORTED_Autoneg | SUPPORTED_TP |
-	     SUPPORTED_Pause);
-	if (!priv->advertising) {
-		priv->advertising = ecmd->supported;
-		priv->autoneg = AUTONEG_ENABLE;
-	}
-	ecmd->advertising = priv->advertising;
-	ecmd->speed = priv->link_speed;
-	ecmd->duplex = DUPLEX_FULL;
-	ecmd->port = PORT_TP;
-	ecmd->transceiver = XCVR_INTERNAL;
-	ecmd->autoneg = priv->autoneg;
-#if defined(ETH_TP_MDI_AUTO)
-	ecmd->eth_tp_mdix = ETH_TP_MDI_AUTO;
-#else
-	ecmd->eth_tp_mdix = ETH_TP_MDI | ETH_TP_MDI_X;
-#endif
-	return 0;
-
-}
-
-int MV88X3120_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-	s32 speed = ethtool_cmd_speed(ecmd);
-	int rVal = 0;
-
-	pr_debug("MV88X3120 ecmd->cmd=%x\n", ecmd->cmd);
-	pr_debug("MV88X3120 speed=%u\n", speed);
-	pr_debug("MV88X3120 ecmd->autoneg=%u\n", ecmd->autoneg);
-
-	if (AUTONEG_ENABLE == ecmd->autoneg) {
-		priv->advertising =
-		    (ADVERTISED_10000baseT_Full | ADVERTISED_1000baseT_Full |
-		     ADVERTISED_100baseT_Full | ADVERTISED_Autoneg |
-		     ADVERTISED_Pause);
-		priv->autoneg = AUTONEG_ENABLE;
-	} else {
-		priv->autoneg = AUTONEG_DISABLE;
-		switch (speed) {
-		case 10000:	/*10G */
-			priv->advertising =
-			    (ADVERTISED_10000baseT_Full | ADVERTISED_Pause);
-			break;
-
-		case 1000:	/*1G */
-			priv->advertising =
-			    (ADVERTISED_1000baseT_Full | ADVERTISED_Pause);
-			break;
-
-		case 100:	/*100m */
-			priv->advertising =
-			    (ADVERTISED_100baseT_Full | ADVERTISED_Pause);
-			break;
-
-		default:
-			pr_err("does not support speed %u\n", speed);
-			rVal = -EINVAL;
-		}
-	}
-	if (rVal == 0) {
-		rVal = MV88X3120_set_speed(priv, speed);
-	}
-
-	return rVal;
-
-}
-
-#ifdef ETHTOOL_GLINKSETTINGS
 #define MV88X3120_ALL_SPEEDS	(__ETHTOOL_LINK_MODE_MASK_NBITS)
 
 static void MV88X3120_set_link_mode(unsigned long *bits, u32 speed)
@@ -96,7 +21,6 @@ static void MV88X3120_set_link_mode(unsigned long *bits, u32 speed)
 	} else {
 		__set_bit(speed, bits);
 	}
-
 }
 
 int MV88X3120_get_link_ksettings(struct net_device *netdev,
@@ -126,12 +50,7 @@ int MV88X3120_get_link_ksettings(struct net_device *netdev,
 	       sizeof(cmd->link_modes.advertising));
 
 	return 0;
-
 }
-
-#endif
-
-#ifdef ETHTOOL_SLINKSETTINGS
 
 int MV88X3120_set_link_ksettings(struct net_device *netdev,
 				 const struct ethtool_link_ksettings *cmd)
@@ -171,11 +90,9 @@ int MV88X3120_set_link_ksettings(struct net_device *netdev,
 	}
 
 	return 0;
-
 }
 
-#endif
-/*----------------------------------------- EEE - IEEEaz ------------------------------------------ */
+/* EEE - IEEEaz */
 #ifdef _EEE_
 #ifdef ETHTOOL_GEEE
 
@@ -209,14 +126,12 @@ int MV88X3120_get_eee(struct net_device *netdev, struct ethtool_eee *edata)
 	edata->eee_enabled = true;
 
 	return 0;
-
 }
 #endif
 
 #ifdef ETHTOOL_SEEE
 int MV88X3120_set_eee(struct bdx_priv *priv)
 {
-
 	u16 val, port = priv->phy_mdio_port;
 
 	/*EEE LPI Buffer Enable */
@@ -240,7 +155,6 @@ int MV88X3120_set_eee(struct bdx_priv *priv)
 	priv->eee_enabled = true;
 
 	return 0;
-
 }
 
 #endif
@@ -278,21 +192,14 @@ int MV88X3120_reset_eee(struct bdx_priv *priv)
 	priv->eee_enabled = false;
 
 	return 0;
-
 }
 
 #endif
 
 __init void MV88X3120_register_settings(struct bdx_priv *priv)
 {
-	priv->phy_ops.get_settings = MV88X3120_get_settings;
-	priv->phy_ops.set_settings = MV88X3120_set_settings;
-#ifdef ETHTOOL_GLINKSETTINGS
 	priv->phy_ops.get_link_ksettings = MV88X3120_get_link_ksettings;
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 	priv->phy_ops.set_link_ksettings = MV88X3120_set_link_ksettings;
-#endif
 	priv->autoneg = AUTONEG_ENABLE;
 #ifdef _EEE_
 #ifdef ETHTOOL_GEEE

@@ -410,9 +410,7 @@ struct bdx_phy_operations {
 	unsigned short leds[PHY_LEDS];
 	int (*mdio_reset)(struct bdx_priv *, int, unsigned short);
 	 u32(*link_changed) (struct bdx_priv *);
-	int (*get_settings)(struct net_device *, struct ethtool_cmd *);
 	void (*ledset)(struct bdx_priv *, enum PHY_LEDS_OP);
-	int (*set_settings)(struct net_device *, struct ethtool_cmd *);
 	int (*get_link_ksettings)(struct net_device *,
 				  struct ethtool_link_ksettings *);
 	int (*set_link_ksettings)(struct net_device *,

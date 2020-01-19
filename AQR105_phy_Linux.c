@@ -2,91 +2,6 @@
 
 int AQR105_set_speed(struct bdx_priv *priv, s32 speed);
 
-int AQR105_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	ecmd->supported =
-	    (SUPPORTED_10000baseT_Full | SUPPORTED_1000baseT_Full |
-	     SUPPORTED_100baseT_Full | SUPPORTED_Autoneg | SUPPORTED_TP |
-	     SUPPORTED_Pause);
-	if (!priv->advertising) {
-		priv->advertising = ecmd->supported;
-		priv->autoneg = AUTONEG_ENABLE;
-	}
-	ecmd->advertising = priv->advertising;
-	ecmd->speed = priv->link_speed;
-	ecmd->duplex = DUPLEX_FULL;
-	ecmd->port = PORT_TP;
-	ecmd->transceiver = XCVR_INTERNAL;
-	ecmd->autoneg = priv->autoneg;
-#if defined(ETH_TP_MDI_AUTO)
-	ecmd->eth_tp_mdix = ETH_TP_MDI_AUTO;
-#else
-	ecmd->eth_tp_mdix = ETH_TP_MDI | ETH_TP_MDI_X;
-#endif
-	return 0;
-
-}
-
-int AQR105_set_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
-{
-	struct bdx_priv *priv = netdev_priv(netdev);
-	s32 speed = ethtool_cmd_speed(ecmd);
-	int rVal = 0;
-
-	pr_debug("AQR105 ecmd->cmd=%x\n", ecmd->cmd);
-	pr_debug("AQR105 speed=%u\n", speed);
-	pr_debug("AQR105 ecmd->autoneg=%u\n", ecmd->autoneg);
-
-	if (ecmd->autoneg == AUTONEG_ENABLE) {
-		pr_debug("AQR105 speed %d Autoneg\n", speed);
-		priv->advertising =
-		    (ADVERTISED_10000baseT_Full | ADVERTISED_1000baseT_Full |
-		     ADVERTISED_100baseT_Full | ADVERTISED_Autoneg |
-		     ADVERTISED_Pause);
-		priv->autoneg = AUTONEG_ENABLE;
-	} else {
-		priv->autoneg = AUTONEG_DISABLE;
-		switch (speed) {
-		case 10000:	/*10G */
-			priv->advertising =
-			    (ADVERTISED_10000baseT_Full | ADVERTISED_Pause);
-			break;
-
-		case 5000:	/*5G */
-			priv->advertising = (ADVERTISED_Pause);
-			break;
-
-		case 2500:	/*2.5G */
-			priv->advertising = (ADVERTISED_Pause);
-			break;
-
-		case 1000:	/*1G */
-			priv->advertising =
-			    (ADVERTISED_1000baseT_Full | ADVERTISED_Pause);
-			break;
-
-		case 100:	/*100m */
-			priv->advertising =
-			    (ADVERTISED_100baseT_Full | ADVERTISED_Pause);
-			break;
-
-		default:
-			pr_err("%s does not support speed %u\n",
-			       priv->ndev->name, speed);
-			rVal = -EINVAL;
-		}
-	}
-	if (rVal == 0) {
-		rVal = AQR105_set_speed(priv, speed);
-	}
-
-	return rVal;
-
-}
-
-#ifdef ETHTOOL_GLINKSETTINGS
 #define AQR105_ALL_SPEEDS	(__ETHTOOL_LINK_MODE_MASK_NBITS)
 
 static void AQR105_set_link_mode(unsigned long *bits, u32 speed)
@@ -134,12 +49,8 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 	       sizeof(cmd->link_modes.advertising));
 
 	return 0;
-
 }
 
-#endif
-
-#ifdef ETHTOOL_SLINKSETTINGS
 
 int AQR105_set_link_ksettings(struct net_device *netdev,
 			      const struct ethtool_link_ksettings *cmd)
@@ -188,21 +99,11 @@ int AQR105_set_link_ksettings(struct net_device *netdev,
 	}
 
 	return 0;
-
 }
-
-#endif
 
 __init void AQR105_register_settings(struct bdx_priv *priv)
 {
-	priv->phy_ops.get_settings = AQR105_get_settings;
-	priv->phy_ops.set_settings = AQR105_set_settings;
-#ifdef ETHTOOL_GLINKSETTINGS
 	priv->phy_ops.get_link_ksettings = AQR105_get_link_ksettings;
-#endif
-#ifdef ETHTOOL_SLINKSETTINGS
 	priv->phy_ops.set_link_ksettings = AQR105_set_link_ksettings;
-#endif
 	priv->autoneg = AUTONEG_ENABLE;
-
 }
