@@ -1,7 +1,12 @@
 tn40xx.ko
 tn40xx.mod.c
+tn40xx.mod
 Module.symvers
+modules.order
+._RESUME_
 *~
 *.o
 *.o.cmd
+*.ko.cmd
+*.mod.cmd
 *.swp
