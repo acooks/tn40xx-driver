@@ -17,8 +17,8 @@ RESUME_FILE   := ._RESUME_
 MODULE_DIR    :=M=$(PWD)
 DRV_NAME      := tn40xx
 JUMBO_OBJS    := QT2025_phy.o QT2025_phy_Linux.o TLK10232_phy.o TLK10232_phy_Linux.o \
-                 AQR105_phy.o AQR105_phy_Linux.o
-JUMBO_PHYS    := -DPHY_QT2025 -DPHY_TLK10232 -DPHY_AQR105 -DPHY_MUSTANG
+                 AQR105_phy.o AQR105_phy_Linux.o MV88X3310_phy.o MV88X3310_phy_Linux.o
+JUMBO_PHYS    := -DPHY_QT2025 -DPHY_TLK10232 -DPHY_AQR105 -DPHY_MUSTANG -DPHY_MV88X3310
 
 DRV_NAME      := tn40xx
 DRV_OBJS      := tn40.o CX4.o CX4_Linux.o
