@@ -8,7 +8,7 @@
 #######################################
 
 PWD           := $(shell pwd)
-KVERSION      := $(shell uname -r)
+KVERSION      ?= $(shell uname -r)
 EXPECTED_KDIR := /lib/modules/$(KVERSION)/build
 OLDINSTDIR       := /lib/modules/$(KVERSION)/kernel/drivers/net
 INSTDIR          := /lib/modules/$(KVERSION)/kernel/drivers/net/tehuti
