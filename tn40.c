@@ -4957,6 +4957,9 @@ static void bdx_ethtool_ops(struct net_device *netdev)
 #endif
 		.get_drvinfo = bdx_get_drvinfo,
 		.get_link = ethtool_op_get_link,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
+		.supported_coalesce_params = ETHTOOL_COALESCE_USECS,
+#endif
 		.get_coalesce = bdx_get_coalesce,
 		.set_coalesce = bdx_set_coalesce,
 		.get_ringparam = bdx_get_ringparam,
