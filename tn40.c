@@ -3770,8 +3770,16 @@ bdx_get_drvinfo(struct net_device *netdev, struct ethtool_drvinfo *drvinfo)
  * @netdev
  * @ecoal
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+static int
+bdx_get_coalesce(struct net_device *netdev,
+		 struct ethtool_coalesce *ecoal,
+		 struct kernel_ethtool_coalesce *kernel_ecoal,
+		 struct netlink_ext_ack *netext_ack)
+#else
 static int
 bdx_get_coalesce(struct net_device *netdev, struct ethtool_coalesce *ecoal)
+#endif
 {
 	u32 rdintcm;
 	u32 tdintcm;
@@ -3802,8 +3810,16 @@ bdx_get_coalesce(struct net_device *netdev, struct ethtool_coalesce *ecoal)
  * @netdev
  * @ecoal
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+static int
+bdx_set_coalesce(struct net_device *netdev,
+		 struct ethtool_coalesce *ecoal,
+		 struct kernel_ethtool_coalesce *kernel_ecoal,
+		 struct netlink_ext_ack *netext_ack)
+#else
 static int
 bdx_set_coalesce(struct net_device *netdev, struct ethtool_coalesce *ecoal)
+#endif
 {
 	u32 rdintcm;
 	u32 tdintcm;
