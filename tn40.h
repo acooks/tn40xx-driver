@@ -881,8 +881,13 @@ struct txf_desc {
 #define LUXOR__POLL_DISABLE(dev)
 #define LUXOR__NAPI_ENABLE(napi)    napi_enable(napi)
 #define LUXOR__NAPI_DISABLE(napi)   napi_disable(napi)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+#define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
+                  netif_napi_add_weight(dev, napi, poll, weight)
+#else
 #define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
                   netif_napi_add(dev, napi, poll, weight)
+#endif
 
 /*
  * Note: 32 bit  kernels use 16 bits for page_offset. Do not increase
