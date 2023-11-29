@@ -2742,55 +2742,47 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 	struct pbl *pbl = &txdd->pbl[0];
 	int nrFrags = skb_shinfo(skb)->nr_frags;
 	int copyFrags = 0;
-	int copyBytes = 0;
 	unsigned int size;
 
-	do {
-		pr_debug("TX skb %p skbLen %d dataLen %d frags %d\n", skb,
-			 skb->len, skb->data_len, nrFrags);
-		if (nrFrags > MAX_PBL - 1) {
-			pr_err("MAX PBL exceeded %d !!!\n", nrFrags);
-			copyBytes = -1;
-			break;
-		}
-		*nr_frags = nrFrags;
-		/* initial skb */
-		len = skb->len - skb->data_len;
+	pr_debug("TX skb %p skbLen %d dataLen %d frags %d\n", skb,
+		 skb->len, skb->data_len, nrFrags);
+
+	if (nrFrags > MAX_PBL - 1) {
+		pr_err("MAX PBL exceeded %d !!!\n", nrFrags);
+		return -1;
+	}
+	*nr_frags = nrFrags;
+	/* initial skb */
+	len = skb->len - skb->data_len;
+	dmaAddr =
+	    dma_map_single(&priv->pdev->dev, skb->data, len, DMA_TO_DEVICE);
+	bdx_setTxdb(db, dmaAddr, len);
+	bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
+	*pkt_len = db->wptr->len;
+
+	/* remaining frags */
+	for (i = copyFrags; i < nrFrags; i++) {
+
+		frag = &skb_shinfo(skb)->frags[i];
+		size = skb_frag_size(frag);
 		dmaAddr =
-		    dma_map_single(&priv->pdev->dev, skb->data, len,
-				   DMA_TO_DEVICE);
-		bdx_setTxdb(db, dmaAddr, len);
+		    skb_frag_dma_map(&priv->pdev->dev, frag, 0,
+				     size, DMA_TO_DEVICE);
+		bdx_tx_db_inc_wptr(db);
+		bdx_setTxdb(db, dmaAddr, size);
 		bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
-		*pkt_len = db->wptr->len;
+		*pkt_len += db->wptr->len;
+	}
+	if (skb->len < 60) {
+		++nrFrags;	/* SHORT_PKT_FIX */
+	}
+	/* Add skb clean up info. */
+	bdx_tx_db_inc_wptr(db);
+	db->wptr->len = -txd_sizes[nrFrags].bytes;
+	db->wptr->addr.skb = skb;
+	bdx_tx_db_inc_wptr(db);
 
-		/* remaining frags */
-		for (i = copyFrags; i < nrFrags; i++) {
-
-			frag = &skb_shinfo(skb)->frags[i];
-			size = skb_frag_size(frag);
-			dmaAddr =
-			    skb_frag_dma_map(&priv->pdev->dev, frag, 0,
-					     size, DMA_TO_DEVICE);
-			bdx_tx_db_inc_wptr(db);
-			bdx_setTxdb(db, dmaAddr, size);
-			bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
-			*pkt_len += db->wptr->len;
-		}
-		if (skb->len < 60) {
-			++nrFrags;	/* SHORT_PKT_FIX */
-		}
-		/* Add skb clean up info. */
-		bdx_tx_db_inc_wptr(db);
-		db->wptr->len = -txd_sizes[nrFrags].bytes;
-		db->wptr->addr.skb = skb;
-		bdx_tx_db_inc_wptr(db);
-
-	} while (0);
-
-	return copyBytes;
-
-	/*if (copyBytes) return -1; else return 0; */
-
+	return 0;
 }
 
 /*
@@ -2900,120 +2892,113 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	int txd_vlan_id = 0;
 	int txd_vtag = 0;
 	int txd_mss = 0;
-	int rVal = NETDEV_TX_OK;
 	unsigned int pkt_len;
 	struct txd_desc *txdd;
-	int nr_frags, len, copyBytes;
+	int nr_frags, len;
 	DBG_OFF;
 
 	if (!(priv->state & BDX_STATE_STARTED)) {
 		return -1;
 	}
-	do {
-		/* Build tx descriptor */
-		BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* started with valid wptr */
-		txdd = (struct txd_desc *)(f->m.va + f->m.wptr);
-		copyBytes =
-		    bdx_tx_map_skb(priv, skb, txdd, &nr_frags, &pkt_len);
-		if (copyBytes < 0) {
-			dev_kfree_skb_any(skb);
-			break;
-		}
-		if (unlikely(skb->ip_summed != CHECKSUM_PARTIAL)) {
-			txd_checksum = 0;
-		}
-		if (skb_shinfo(skb)->gso_size) {
-			txd_mss = skb_shinfo(skb)->gso_size;
-			txd_lgsnd = 1;
-			pr_debug("skb %p pkt len %d gso size = %d\n", skb,
-				 pkt_len, txd_mss);
-		}
-		if (vlan_tx_tag_present(skb)) {
-			/* Don't cut VLAN ID to 12 bits */
-			txd_vlan_id = vlan_tx_tag_get(skb);
-			txd_vtag = 1;
-		}
-		txdd->va_hi = copyBytes;
-		txdd->va_lo = (u32) ((u64) skb);
-		txdd->length = CPU_CHIP_SWAP16(pkt_len);
-		txdd->mss = CPU_CHIP_SWAP16(txd_mss);
+
+	/* Build tx descriptor */
+	BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* started with valid wptr */
+	txdd = (struct txd_desc *)(f->m.va + f->m.wptr);
+	if (bdx_tx_map_skb(priv, skb, txdd, &nr_frags, &pkt_len) != 0) {
+		dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;	// probably not entirely OK.
+	}
+
+	if (unlikely(skb->ip_summed != CHECKSUM_PARTIAL)) {
+		txd_checksum = 0;
+	}
+
+	if (skb_shinfo(skb)->gso_size) {
+		txd_mss = skb_shinfo(skb)->gso_size;
+		txd_lgsnd = 1;
+		pr_debug("skb %p pkt len %d gso size = %d\n", skb,
+			 pkt_len, txd_mss);
+	}
+
+	if (vlan_tx_tag_present(skb)) {
+		/* Don't cut VLAN ID to 12 bits */
+		txd_vlan_id = vlan_tx_tag_get(skb);
+		txd_vtag = 1;
+	}
+	txdd->va_hi = 0;
+	txdd->va_lo = (u32) ((u64) skb);
+	txdd->length = CPU_CHIP_SWAP16(pkt_len);
+	txdd->mss = CPU_CHIP_SWAP16(txd_mss);
+	txdd->txd_val1 =
+	    CPU_CHIP_SWAP32(TXD_W1_VAL
+			    (txd_sizes[nr_frags].qwords, txd_checksum,
+			     txd_vtag, txd_lgsnd, txd_vlan_id));
+
+	pr_debug("w1 qwords[%d] %d\n", nr_frags, txd_sizes[nr_frags].qwords);
+	pr_debug("TxD desc w1: 0x%x w2: mss 0x%x len 0x%x\n",
+		 txdd->txd_val1, txdd->mss, txdd->length);
+
+	/* SHORT_PKT_FIX */
+	if (pkt_len < 60) {
+		struct pbl *pbl = &txdd->pbl[++nr_frags];
+		txdd->length = CPU_CHIP_SWAP16(60);
 		txdd->txd_val1 =
 		    CPU_CHIP_SWAP32(TXD_W1_VAL
-				    (txd_sizes[nr_frags].qwords, txd_checksum,
-				     txd_vtag, txd_lgsnd, txd_vlan_id));
-		pr_debug("=== w1 qwords[%d] %d =====\n", nr_frags,
-			 txd_sizes[nr_frags].qwords);
-		pr_debug("=== TxD desc =====================\n");
-		pr_debug("=== w1: 0x%x ================\n", txdd->txd_val1);
-		pr_debug("=== w2: mss 0x%x len 0x%x\n", txdd->mss,
-			 txdd->length);
-		/* SHORT_PKT_FIX */
-		if (pkt_len < 60) {
-			struct pbl *pbl = &txdd->pbl[++nr_frags];
-			txdd->length = CPU_CHIP_SWAP16(60);
-			txdd->txd_val1 =
-			    CPU_CHIP_SWAP32(TXD_W1_VAL
-					    (txd_sizes[nr_frags].qwords,
-					     txd_checksum, txd_vtag, txd_lgsnd,
-					     txd_vlan_id));
-			pbl->len = CPU_CHIP_SWAP32(60 - pkt_len);
-			pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(priv->b0_dma));
-			pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(priv->b0_dma));
-			pr_debug("=== SHORT_PKT_FIX   ================\n");
-			pr_debug("=== nr_frags : %d   ================\n",
-				 nr_frags);
-			dbg_printPBL(pbl);
+				    (txd_sizes[nr_frags].qwords,
+				     txd_checksum, txd_vtag, txd_lgsnd,
+				     txd_vlan_id));
+		pbl->len = CPU_CHIP_SWAP32(60 - pkt_len);
+		pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(priv->b0_dma));
+		pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(priv->b0_dma));
+		pr_debug("SHORT_PKT_FIX nr_frags : %d\n", nr_frags);
+		dbg_printPBL(pbl);
+	}
+	/* SHORT_PKT_FIX end */
+
+	/*
+	 * Increment TXD write pointer. In case of fifo wrapping copy reminder of
+	 *  the descriptor to the beginning
+	 */
+	f->m.wptr += txd_sizes[nr_frags].bytes;
+	len = f->m.wptr - f->m.memsz;
+	if (unlikely(len >= 0)) {
+		f->m.wptr = len;
+		if (len > 0) {
+			BDX_ASSERT(len > f->m.memsz);
+			memcpy(f->m.va, f->m.va + f->m.memsz, len);
 		}
-		/* SHORT_PKT_FIX end */
-		/*
-		 * Increment TXD write pointer. In case of fifo wrapping copy reminder of
-		 *  the descriptor to the beginning
-		 */
-		f->m.wptr += txd_sizes[nr_frags].bytes;
-		len = f->m.wptr - f->m.memsz;
-		if (unlikely(len >= 0)) {
-			f->m.wptr = len;
-			if (len > 0) {
-				BDX_ASSERT(len > f->m.memsz);
-				memcpy(f->m.va, f->m.va + f->m.memsz, len);
-			}
-		}
-		BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* finished with valid wptr */
-		priv->tx_level -= txd_sizes[nr_frags].bytes;
-		BDX_ASSERT(priv->tx_level <= 0
-			   || priv->tx_level > BDX_MAX_TX_LEVEL);
+	}
+	BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* finished with valid wptr */
+	priv->tx_level -= txd_sizes[nr_frags].bytes;
+	BDX_ASSERT(priv->tx_level <= 0 || priv->tx_level > BDX_MAX_TX_LEVEL);
 #if (defined(TN40_PTP) && defined(ETHTOOL_GET_TS_INFO))
-		skb_tx_timestamp(skb);
+	skb_tx_timestamp(skb);
 #endif
-		if (priv->tx_level > priv->tx_update_mark) {
-			/*
-			 * Force memory writes to complete before letting the HW know
-			 * there are new descriptors to fetch (might be needed on
-			 * platforms like IA64).
-			 *  wmb();
-			 */
+	if (priv->tx_level > priv->tx_update_mark) {
+		/*
+		 * Force memory writes to complete before letting the HW know
+		 * there are new descriptors to fetch (might be needed on
+		 * platforms like IA64).
+		 *  wmb();
+		 */
+		WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
+	} else {
+		if (priv->tx_noupd++ > BDX_NO_UPD_PACKETS) {
+			priv->tx_noupd = 0;
 			WRITE_REG(priv, f->m.reg_WPTR,
 				  f->m.wptr & TXF_WPTR_WR_PTR);
-		} else {
-			if (priv->tx_noupd++ > BDX_NO_UPD_PACKETS) {
-				priv->tx_noupd = 0;
-				WRITE_REG(priv, f->m.reg_WPTR,
-					  f->m.wptr & TXF_WPTR_WR_PTR);
-			}
 		}
-		netif_trans_update(ndev);
-		priv->net_stats.tx_packets++;
-		priv->net_stats.tx_bytes += pkt_len;
-		if (priv->tx_level < BDX_MIN_TX_LEVEL) {
-			pr_debug("%s: %s: TX Q STOP level %d\n", BDX_DRV_NAME,
-				 ndev->name, priv->tx_level);
-			netif_stop_queue(ndev);
-		}
+	}
+	netif_trans_update(ndev);
+	priv->net_stats.tx_packets++;
+	priv->net_stats.tx_bytes += pkt_len;
+	if (priv->tx_level < BDX_MIN_TX_LEVEL) {
+		pr_debug("%s: %s: TX Q STOP level %d\n", BDX_DRV_NAME,
+			 ndev->name, priv->tx_level);
+		netif_stop_queue(ndev);
+	}
 
-	} while (0);
-
-	return rVal;
-
+	return NETDEV_TX_OK;
 }
 
 /* bdx_tx_cleanup - Clean the TXF fifo, run in the context of IRQ.
