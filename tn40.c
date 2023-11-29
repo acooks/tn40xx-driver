@@ -474,7 +474,7 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 }
 
 static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
-				      void __iomem * regs, int *port_t,
+				      void __iomem *regs, int *port_t,
 				      unsigned short *phy_t)
 {
 	int i, phy_id;
@@ -653,7 +653,8 @@ bdx_fifo_init(struct bdx_priv *priv, struct fifo *f, int fsz_type,
 	/* dma_alloc_coherent gives us 4k-aligned memory */
 	if (f->va == NULL) {
 		f->va = dma_alloc_coherent(&priv->pdev->dev,
-					     memsz + FIFO_EXTRA_SPACE, &f->da, GFP_ATOMIC);
+					   memsz + FIFO_EXTRA_SPACE, &f->da,
+					   GFP_ATOMIC);
 		if (!f->va) {
 			pr_err("dma_alloc_coherent failed\n");
 			return -ENOMEM;
@@ -682,7 +683,8 @@ static void bdx_fifo_free(struct bdx_priv *priv, struct fifo *f)
 
 	if (f->va) {
 		dma_free_coherent(&priv->pdev->dev,
-				    f->memsz + FIFO_EXTRA_SPACE, f->va, (enum dma_data_direction)f->da);
+				  f->memsz + FIFO_EXTRA_SPACE, f->va,
+				  (enum dma_data_direction)f->da);
 		f->va = NULL;
 	}
 
@@ -1176,7 +1178,7 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 
 }
 
-static int bdx_hw_reset_direct(void __iomem * regs)
+static int bdx_hw_reset_direct(void __iomem *regs)
 {
 	u32 val, i;
 
@@ -1748,7 +1750,6 @@ static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
  *     Rx Engine                             *
  *************************************************************************/
 
-
 static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 			u32 rxd_val1, u16 rxd_vlan)
 {
@@ -1757,7 +1758,6 @@ static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
 	}
 }
-
 
 static void dbg_printRxPage(char newLine, struct bdx_page *bdx_page)
 {
@@ -1928,8 +1928,8 @@ static void bdx_rx_free_bdx_page(struct bdx_priv *priv,
 				 struct bdx_page *bdx_page)
 {
 
-	dma_unmap_page(&priv->pdev->dev, bdx_page->dma, priv->rx_page_table.page_size,
-		       DMA_FROM_DEVICE);
+	dma_unmap_page(&priv->pdev->dev, bdx_page->dma,
+		       priv->rx_page_table.page_size, DMA_FROM_DEVICE);
 	put_page(bdx_page->page);
 
 }
@@ -2109,8 +2109,7 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 		if (dm->dma) {
 			if (dm->skb) {
 				dma_unmap_single(&priv->pdev->dev, dm->dma,
-						 f->m.pktsz,
-						 DMA_FROM_DEVICE);
+						 f->m.pktsz, DMA_FROM_DEVICE);
 				dev_kfree_skb(dm->skb);
 			} else {
 				struct bdx_page *bdx_page = bdx_rx_page(dm);
@@ -2280,7 +2279,7 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 
 }
 
-static inline u16 tcpCheckSum(u16 * buf, u16 len, u16 * saddr, u16 * daddr,
+static inline u16 tcpCheckSum(u16 *buf, u16 len, u16 *saddr, u16 *daddr,
 			      u16 proto)
 {
 	u32 sum;
@@ -2832,7 +2831,8 @@ static int bdx_tx_init(struct bdx_priv *priv)
 	/* SHORT_PKT_FIX */
 	priv->b0_len = 64;
 	priv->b0_va =
-	    dma_alloc_coherent(&priv->pdev->dev, priv->b0_len, &priv->b0_dma, GFP_ATOMIC);
+	    dma_alloc_coherent(&priv->pdev->dev, priv->b0_len, &priv->b0_dma,
+			       GFP_ATOMIC);
 	memset(priv->b0_va, 0, priv->b0_len);
 	/* SHORT_PKT_FIX end */
 
@@ -3098,7 +3098,7 @@ static void bdx_tx_free(struct bdx_priv *priv)
 	/* SHORT_PKT_FIX */
 	if (priv->b0_len) {
 		dma_free_coherent(&priv->pdev->dev, priv->b0_len, priv->b0_va,
-				    (enum dma_data_direction)priv->b0_dma);
+				  (enum dma_data_direction)priv->b0_dma);
 		priv->b0_len = 0;
 	}
 	/* SHORT_PKT_FIX end */
@@ -3452,8 +3452,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	} else {
 		if ((err = dma_set_mask(&pdev->dev, LUXOR__DMA_32BIT_MASK)) ||
 		    (err = dma_set_coherent_mask(&pdev->dev,
-						       LUXOR__DMA_32BIT_MASK)))
-		{
+						 LUXOR__DMA_32BIT_MASK))) {
 			pr_err("No usable DMA configuration - aborting\n");
 			goto err_dma;
 		}
@@ -3525,8 +3524,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	    NETIF_F_SG |
 	    NETIF_F_FRAGLIST |
 	    NETIF_F_TSO | NETIF_F_VLAN_TSO | NETIF_F_VLAN_CSUM | NETIF_F_GRO |
-	    NETIF_F_RXCSUM |
-	    NETIF_F_RXHASH;
+	    NETIF_F_RXCSUM | NETIF_F_RXHASH;
 
 #ifdef NETIF_F_HW_VLAN_CTAG_RX
 	ndev->features |= NETIF_F_HW_VLAN_CTAG_TX |
@@ -3874,9 +3872,9 @@ static inline int bdx_tx_fifo_size_to_packets(int tx_size)
  */
 static void
 bdx_get_ringparam(struct net_device *netdev,
-		 struct ethtool_ringparam *ring,
-		 struct kernel_ethtool_ringparam *kernel_ering,
-		 struct netlink_ext_ack *extack)
+		  struct ethtool_ringparam *ring,
+		  struct kernel_ethtool_ringparam *kernel_ering,
+		  struct netlink_ext_ack *extack)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
@@ -3895,9 +3893,9 @@ bdx_get_ringparam(struct net_device *netdev,
  */
 static int
 bdx_set_ringparam(struct net_device *netdev,
-		 struct ethtool_ringparam *ring,
-		 struct kernel_ethtool_ringparam *kernel_ering,
-		 struct netlink_ext_ack *extack)
+		  struct ethtool_ringparam *ring,
+		  struct kernel_ethtool_ringparam *kernel_ering,
+		  struct netlink_ext_ack *extack)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 	int rx_size = 0;
@@ -3942,7 +3940,7 @@ bdx_set_ringparam(struct net_device *netdev,
  * @netdev
  * @data
  */
-static void bdx_get_strings(struct net_device *netdev, u32 stringset, u8 * data)
+static void bdx_get_strings(struct net_device *netdev, u32 stringset, u8 *data)
 {
 	switch (stringset) {
 	case ETH_SS_TEST:
@@ -3954,7 +3952,6 @@ static void bdx_get_strings(struct net_device *netdev, u32 stringset, u8 * data)
 		break;
 	}
 }
-
 
 /*
  * bdx_get_sset_count - Return the number of statistics or tests.
@@ -3983,7 +3980,7 @@ static int bdx_get_sset_count(struct net_device *netdev, int stringset)
  * @data
  */
 static void bdx_get_ethtool_stats(struct net_device *netdev,
-				  struct ethtool_stats *stats, u64 * data)
+				  struct ethtool_stats *stats, u64 *data)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
@@ -3996,7 +3993,6 @@ static void bdx_get_ethtool_stats(struct net_device *netdev,
 		memcpy(data, &priv->hw_stats, sizeof(priv->hw_stats));
 	}
 }
-
 
 /* Blink LED's for finding board */
 

@@ -578,8 +578,8 @@ struct txd_desc {
 
 struct txf_desc {
 	u32 status;
-	u32 va_lo;		/* VAdr[31:0]                                                    */
-	u32 va_hi;		/* VAdr[63:32]                                                   */
+	u32 va_lo;		/* VAdr[31:0]    */
+	u32 va_hi;		/* VAdr[63:32]   */
 	u32 pad;
 } __attribute__((packed));
 
