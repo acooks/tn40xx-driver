@@ -267,11 +267,9 @@ struct bdx_device_descr {
 struct pci_nic {
 	int port_num;
 	void __iomem *regs;
-	int irq_type;
 	struct bdx_priv *priv;
 };
 
-enum { IRQ_INTX, IRQ_MSI, IRQ_MSIX };
 
 #define PCK_TH_MULT   128
 #define INT_COAL_MULT 2
