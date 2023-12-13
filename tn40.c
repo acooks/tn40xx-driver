@@ -3511,7 +3511,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	if (!(ndev = alloc_etherdev(sizeof(struct bdx_priv)))) {
 		err = -ENOMEM;
 		dev_err(&pdev->dev, "alloc_etherdev failed\n");
-		goto err_out_iomap;
+		goto err_out_irq_vectors;
 	}
 
 	ndev->netdev_ops = &bdx_netdev_ops;
@@ -3645,6 +3645,8 @@ static int __init bdx_probe(struct pci_dev *pdev,
 err_out_free:
 	unregister_netdev(ndev);
 	free_netdev(ndev);
+err_out_irq_vectors:
+	pci_free_irq_vectors(priv->pdev);
 err_out_iomap:
 	iounmap(nic->regs);
 err_out_res:
@@ -4157,6 +4159,7 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 	bdx_tx_free(priv);
 	unregister_netdev(ndev);
 	free_netdev(ndev);
+	pci_free_irq_vectors(pdev);
 	iounmap(nic->regs);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
