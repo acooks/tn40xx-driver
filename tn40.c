@@ -6,6 +6,8 @@
  * (at your option) any later version.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include "tn40.h"
 #include "tn40_fw.h"
 
@@ -372,17 +374,17 @@ int bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
 	writel(i, regs + regMDIO_CMD);
 	writel((u32) addr, regs + regMDIO_ADDR);
 	if ((tmp_reg = bdx_mdio_get(priv)) == 0xFFFFFFFF) {
-		pr_err("MDIO busy after read command\n");
+		dev_err(&priv->pdev->dev, "MDIO busy after read command\n");
 		return -1;
 	}
 	writel(((1 << 15) | i), regs + regMDIO_CMD);
 	/* Read CMD_STAT until not busy */
 	if ((tmp_reg = bdx_mdio_get(priv)) == 0xFFFFFFFF) {
-		pr_err("MDIO busy after read command\n");
+		dev_err(&priv->pdev->dev, "MDIO busy after read command\n");
 		return -1;
 	}
 	if (GET_MDIO_RD_ERR(tmp_reg)) {
-		pr_debug("MDIO error after read command\n");
+		dev_dbg(&priv->pdev->dev, "MDIO error after read command\n");
 		return -1;
 	}
 	tmp_reg = readl(regs + regMDIO_DATA);
@@ -457,7 +459,7 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 	phy_id &= 0xFFFF;
 	for (i = 0; i < 32; i++) {
 		msleep(10);
-		pr_debug("LOOK FOR PHY: port=0x%x\n", i);
+		dev_dbg(&priv->pdev->dev, "LOOK FOR PHY: port=0x%x\n", i);
 		phy_id = bdx_mdio_read(priv, 1, i, 0x0002);	/* PHY_ID_HIGH */
 		phy_id &= 0xFFFF;
 		if (phy_id != 0xFFFF && phy_id != 0) {
@@ -466,7 +468,7 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 		}
 	}
 	if (rVal == -1) {
-		pr_err("PHY not found\n");
+		dev_err(&priv->pdev->dev, "PHY not found\n");
 	}
 
 	return rVal;
@@ -481,7 +483,7 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 	char *s;
 
 	if (bdx_force_no_phy_mode) {
-		pr_err("Forced NO PHY mode\n");
+		dev_err(&priv->pdev->dev, "Forced NO PHY mode\n");
 		i = 0;
 	} else {
 		i = bdx_mdio_look_for_phy(priv, *port_t);
@@ -530,8 +532,9 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 			*phy_t = CX4_register(priv);
 		} else {
 			s = "";
-			pr_err("Unsupported device id/phy id 0x%x/0x%x !\n",
-			       priv->pdev->device, i);
+			dev_err(&priv->pdev->dev,
+				"Unsupported device id/phy id 0x%x/0x%x !\n",
+				priv->pdev->device, i);
 		}
 		break;
 
@@ -564,7 +567,8 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 
 	priv->isr_mask |= IR_TMR1;
 	setMDIOSpeed(priv, priv->phy_ops.mdio_speed);
-	pr_info("PHY detected on port %u ID=%X - %s\n", *port_t, i, s);
+	dev_info(&priv->pdev->dev, "PHY detected on port %u ID=%X - %s\n",
+		 *port_t, i, s);
 
 	return (PHY_TYPE_NA == *phy_t) ? -1 : 0;
 
@@ -582,7 +586,8 @@ static int __init bdx_mdio_reset(struct bdx_priv *priv, int port,
 		return -1;
 	}
 	if (phy != phy_t) {
-		pr_err("PHY type by svid %u found %u\n", phy, phy_t);
+		dev_err(&priv->pdev->dev, "PHY type by svid %u found %u\n", phy,
+			phy_t);
 		phy = phy_t;
 	}
 	port = port_t;
@@ -606,22 +611,23 @@ static void print_hw_id(struct pci_dev *pdev)
 	pci_read_config_word(pdev, PCI_LINK_STATUS_REG, &pci_link_status);
 	pci_read_config_word(pdev, PCI_DEV_CTRL_REG, &pci_ctrl);
 
-	pr_info("srom 0x%x HWver %d build %u lane# %d max_pl 0x%x mrrs 0x%x\n",
-		readl(nic->regs + SROM_VER),
-		readl(nic->regs + FPGA_VER) & 0xFFFF,
-		readl(nic->regs + FPGA_SEED),
-		GET_LINK_STATUS_LANES(pci_link_status),
-		GET_DEV_CTRL_MAXPL(pci_ctrl), GET_DEV_CTRL_MRRS(pci_ctrl));
+	dev_info(&pdev->dev,
+		 "srom 0x%x HWver %d build %u lane# %d max_pl 0x%x mrrs 0x%x\n",
+		 readl(nic->regs + SROM_VER),
+		 readl(nic->regs + FPGA_VER) & 0xFFFF,
+		 readl(nic->regs + FPGA_SEED),
+		 GET_LINK_STATUS_LANES(pci_link_status),
+		 GET_DEV_CTRL_MAXPL(pci_ctrl), GET_DEV_CTRL_MRRS(pci_ctrl));
 }
 
-static void print_fw_id(struct pci_nic *nic)
+static void print_fw_id(struct bdx_priv *priv)
 {
-	pr_info("fw 0x%x\n", readl(nic->regs + FW_VER));
+	netdev_info(priv->ndev, "fw 0x%x\n", readl(priv->nic->regs + FW_VER));
 }
 
 static void print_eth_id(struct net_device *ndev)
 {
-	pr_info("%s, Port %c\n", ndev->name, (ndev->if_port == 0) ? 'A' : 'B');
+	netdev_info(ndev, "Port %c\n", (ndev->if_port == 0) ? 'A' : 'B');
 }
 
 /*************************************************************************
@@ -656,7 +662,7 @@ bdx_fifo_init(struct bdx_priv *priv, struct fifo *f, int fsz_type,
 					   memsz + FIFO_EXTRA_SPACE, &f->da,
 					   GFP_ATOMIC);
 		if (!f->va) {
-			pr_err("dma_alloc_coherent failed\n");
+			netdev_err(priv->ndev, "dma_alloc_coherent failed\n");
 			return -ENOMEM;
 		}
 	}
@@ -695,7 +701,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 	int i;
 	u32 val;
 
-	pr_debug("speed %d\n", speed);
+	dev_dbg(&priv->pdev->dev, "speed %d\n", speed);
 
 	switch (speed) {
 	case SPEED_10000:
@@ -703,7 +709,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 	case SPEED_2500:
 	case SPEED_1000X:
 	case SPEED_100X:
-		pr_debug("link_speed %d\n", speed);
+		dev_dbg(&priv->pdev->dev, "link_speed %d\n", speed);
 
 		WRITE_REG(priv, 0x1010, 0x217);	/*ETHSD.REFCLK_CONF  */
 		WRITE_REG(priv, 0x104c, 0x4c);	/*ETHSD.L0_RX_PCNT  */
@@ -740,7 +746,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 			}
 		}
 		if (0 == i) {
-			pr_err("MAC init timeout!\n");
+			dev_err(&priv->pdev->dev, "MAC init timeout!\n");
 		}
 
 		WRITE_REG(priv, 0x6350, 0x0);	/*MAC.PCS_IF_MODE */
@@ -779,7 +785,7 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 			}
 		}
 		if (0 == i) {
-			pr_err("MAC init timeout!\n");
+			dev_err(&priv->pdev->dev, "MAC init timeout!\n");
 		}
 		WRITE_REG(priv, 0x6350, 0x2b);	/*MAC.PCS_IF_MODE 1g */
 		WRITE_REG(priv, 0x6310, 0x9801);	/*MAC.PCS_DEV_AB */
@@ -817,8 +823,8 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 		WRITE_REG(priv, 0x111c, 0x0);	/*MAC.MAC_RST_CNT */
 		break;
 	default:
-		pr_err("%s Link speed was not identified yet (%d)\n",
-		       priv->ndev->name, speed);
+		dev_err(&priv->pdev->dev,
+			"Link speed was not identified yet (%d)\n", speed);
 		speed = 0;
 		break;
 	}
@@ -830,13 +836,14 @@ int bdx_speed_set(struct bdx_priv *priv, u32 speed)
 void bdx_speed_changed(struct bdx_priv *priv, u32 speed)
 {
 
-	pr_debug("speed %d\n", speed);
+	dev_dbg(&priv->pdev->dev, "speed %d\n", speed);
 	speed = bdx_speed_set(priv, speed);
-	pr_debug("link_speed %d speed %d\n", priv->link_speed, speed);
+	dev_dbg(&priv->pdev->dev, "link_speed %d speed %d\n", priv->link_speed,
+		speed);
 	if (priv->link_speed != speed) {
 		priv->link_speed = speed;
-		pr_debug("%s Speed changed %d\n", priv->ndev->name,
-			 priv->link_speed);
+		dev_dbg(&priv->pdev->dev, "Speed changed %d\n",
+			priv->link_speed);
 	}
 
 }
@@ -855,7 +862,7 @@ static void bdx_link_changed(struct bdx_priv *priv)
 		if (netif_carrier_ok(priv->ndev)) {
 			netif_stop_queue(priv->ndev);
 			netif_carrier_off(priv->ndev);
-			pr_err("%s Link Down\n", priv->ndev->name);
+			netdev_err(priv->ndev, "Link Down\n");
 #ifdef _EEE_
 			if (priv->phy_ops.reset_eee != NULL) {
 				priv->phy_ops.reset_eee(priv);
@@ -866,18 +873,18 @@ static void bdx_link_changed(struct bdx_priv *priv)
 		if (!netif_carrier_ok(priv->ndev)) {
 			netif_wake_queue(priv->ndev);
 			netif_carrier_on(priv->ndev);
-			pr_info("%s Link Up %s\n", priv->ndev->name,
-				(priv->link_speed ==
-				 SPEED_10000) ? "10G" : (priv->link_speed ==
-							 SPEED_5000) ? "5G"
-				: (priv->link_speed ==
-				   SPEED_2500) ? "2.5G" : (priv->link_speed ==
-							   SPEED_1000)
-				|| (priv->link_speed ==
-				    SPEED_1000X) ? "1G" : (priv->link_speed ==
-							   SPEED_100)
-				|| (priv->link_speed ==
-				    SPEED_100X) ? "100M" : " ");
+			netdev_info(priv->ndev, "Link Up %s\n",
+				    (priv->link_speed ==
+				     SPEED_10000) ? "10G" : (priv->link_speed ==
+							     SPEED_5000) ? "5G"
+				    : (priv->link_speed ==
+				       SPEED_2500) ? "2.5G" : (priv->link_speed
+							       == SPEED_1000)
+				    || (priv->link_speed ==
+					SPEED_1000X) ? "1G" : (priv->link_speed
+							       == SPEED_100)
+				    || (priv->link_speed ==
+					SPEED_100X) ? "100M" : " ");
 		}
 	}
 
@@ -886,7 +893,7 @@ static void bdx_link_changed(struct bdx_priv *priv)
 static inline void bdx_isr_extra(struct bdx_priv *priv, u32 isr)
 {
 	if (isr & (IR_LNKCHG0 | IR_LNKCHG1 | IR_TMR0)) {
-		pr_debug("isr = 0x%x\n", isr);
+		netdev_dbg(priv->ndev, "isr = 0x%x\n", isr);
 		bdx_link_changed(priv);
 	}
 #if 0
@@ -995,7 +1002,7 @@ static int __init bdx_fw_load(struct bdx_priv *priv)
 
 	master = READ_REG(priv, regINIT_SEMAPHORE);
 	if (!READ_REG(priv, regINIT_STATUS) && master) {
-		pr_debug("Loading FW...\n");
+		netdev_dbg(priv->ndev, "Loading FW...\n");
 		bdx_tx_push_desc_safe(priv, s_firmLoad, sizeof(s_firmLoad));
 		mdelay(100);
 	}
@@ -1008,16 +1015,16 @@ static int __init bdx_fw_load(struct bdx_priv *priv)
 		WRITE_REG(priv, regINIT_SEMAPHORE, 1);
 
 	if (i == 200) {
-		pr_err("%s firmware loading failed\n", priv->ndev->name);
-		pr_debug("VPC = 0x%x VIC = 0x%x INIT_STATUS = 0x%x i =%d\n",
-			 READ_REG(priv, regVPC),
-			 READ_REG(priv, regVIC), READ_REG(priv, regINIT_STATUS),
-			 i);
+		netdev_err(priv->ndev, "firmware loading failed\n");
+		netdev_dbg(priv->ndev,
+			   "VPC = 0x%x VIC = 0x%x INIT_STATUS = 0x%x i =%d\n",
+			   READ_REG(priv, regVPC), READ_REG(priv, regVIC),
+			   READ_REG(priv, regINIT_STATUS), i);
 		rVal = -EIO;
 	} else {
-		pr_debug("%s firmware loading success\n", priv->ndev->name);
+		netdev_dbg(priv->ndev, "firmware loading success\n");
 	}
-	print_fw_id(priv->nic);
+	print_fw_id(priv);
 	return rVal;
 
 }
@@ -1026,9 +1033,10 @@ static void bdx_restore_mac(struct net_device *ndev, struct bdx_priv *priv)
 {
 	u32 val;
 
-	pr_debug("mac0 =%x mac1 =%x mac2 =%x\n",
-		 READ_REG(priv, regUNC_MAC0_A),
-		 READ_REG(priv, regUNC_MAC1_A), READ_REG(priv, regUNC_MAC2_A));
+	netdev_dbg(priv->ndev, "mac0 =%x mac1 =%x mac2 =%x\n",
+		   READ_REG(priv, regUNC_MAC0_A),
+		   READ_REG(priv, regUNC_MAC1_A), READ_REG(priv,
+							   regUNC_MAC2_A));
 
 	val = (ndev->dev_addr[0] << 8) | (ndev->dev_addr[1]);
 	WRITE_REG(priv, regUNC_MAC2_A, val);
@@ -1045,9 +1053,10 @@ static void bdx_restore_mac(struct net_device *ndev, struct bdx_priv *priv)
 	WRITE_REG(priv, regMAC_ADDR_1,
 		  (ndev->dev_addr[5] << 8) | (ndev->dev_addr[4]));
 
-	pr_debug("mac0 =%x mac1 =%x mac2 =%x\n",
-		 READ_REG(priv, regUNC_MAC0_A),
-		 READ_REG(priv, regUNC_MAC1_A), READ_REG(priv, regUNC_MAC2_A));
+	netdev_dbg(priv->ndev, "mac0 =%x mac1 =%x mac2 =%x\n",
+		   READ_REG(priv, regUNC_MAC0_A),
+		   READ_REG(priv, regUNC_MAC1_A), READ_REG(priv,
+							   regUNC_MAC2_A));
 
 }
 
@@ -1091,7 +1100,7 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 		}
 	}
 	if (0 == i) {
-		pr_err("MAC init timeout!\n");
+		netdev_err(priv->ndev, "MAC init timeout!\n");
 	}
 	WRITE_REG(priv, 0x6350, 0x0);	/*MAC.PCS_IF_MODE */
 	WRITE_REG(priv, regCTRLST, 0xC13);	/*0x93//0x13 */
@@ -1114,12 +1123,13 @@ static void bdx_CX4_hw_start(struct bdx_priv *priv)
 static int bdx_hw_start(struct bdx_priv *priv)
 {
 
-	pr_debug("********** bdx_hw_start() ************\n");
+	netdev_dbg(priv->ndev, "********** bdx_hw_start() ************\n");
 	priv->link_speed = 0;	/* -1 */
 	if (priv->phy_type == PHY_TYPE_CX4) {
 		bdx_CX4_hw_start(priv);
 	} else {
-		pr_debug("********** bdx_hw_start() NOT CX4 ************\n");
+		netdev_dbg(priv->ndev,
+			   "********** bdx_hw_start() NOT CX4 ************\n");
 		WRITE_REG(priv, regFRM_LENGTH, 0X3FE0);
 		WRITE_REG(priv, regGMAC_RXF_A, 0X10fd);
 		/*MikeFix1 */
@@ -1137,11 +1147,11 @@ static int bdx_hw_start(struct bdx_priv *priv)
 	WRITE_REG(priv, regMAX_FRAME_A,
 		  priv->rxf_fifo0.m.pktsz & MAX_FRAME_AB_VAL);
 
-	pr_debug("RDINTCM =%08x\n", priv->rdintcm);	/*NOTE: test script uses this */
+	netdev_dbg(priv->ndev, "RDINTCM =%08x\n", priv->rdintcm);	/*NOTE: test script uses this */
 	WRITE_REG(priv, regRDINTCM0, priv->rdintcm);
 	WRITE_REG(priv, regRDINTCM2, 0);
 
-	pr_debug("TDINTCM =%08x\n", priv->tdintcm);	/*NOTE: test script uses this */
+	netdev_dbg(priv->ndev, "TDINTCM =%08x\n", priv->tdintcm);	/*NOTE: test script uses this */
 	WRITE_REG(priv, regTDINTCM0, priv->tdintcm);	/* old val = 0x300064 */
 
 	/* Enable timer interrupt once in 2 secs. */
@@ -1178,7 +1188,7 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 
 }
 
-static int bdx_hw_reset_direct(void __iomem *regs)
+static int bdx_hw_reset_direct(struct pci_dev *pdev, void __iomem *regs)
 {
 	u32 val, i;
 
@@ -1197,7 +1207,7 @@ static int bdx_hw_reset_direct(void __iomem *regs)
 			readl(regs + regRXD_CFG0_0);
 			return 0;
 		}
-	pr_err("HW reset failed\n");
+	dev_err(&pdev->dev, "HW reset failed\n");
 
 	return 1;		/* failure */
 
@@ -1225,7 +1235,7 @@ static int bdx_hw_reset(struct bdx_priv *priv)
 
 		}
 	}
-	pr_err("HW reset failed\n");
+	netdev_err(priv->ndev, "HW reset failed\n");
 
 	return 1;		/* Failure */
 
@@ -1250,8 +1260,7 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 		mdelay(10);
 	}
 	if (i == 50) {
-		pr_err("%s SW reset timeout. continuing anyway\n",
-		       priv->ndev->name);
+		netdev_err(priv->ndev, "SW reset timeout. continuing anyway\n");
 	}
 	/* 6. Disable interrupts */
 	WRITE_REG(priv, regRDINTCM0, 0);
@@ -1430,20 +1439,20 @@ static void __bdx_vlan_rx_vid(struct net_device *ndev, uint16_t vid, int enable)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	u32 reg, bit, val;
 
-	pr_debug("vid =%d value =%d\n", (int)vid, enable);
+	netdev_dbg(ndev, "vid =%d value =%d\n", (int)vid, enable);
 	if (unlikely(vid >= 4096)) {
-		pr_err("invalid VID: %u (> 4096)\n", vid);
+		netdev_err(ndev, "invalid VID: %u (> 4096)\n", vid);
 		return;
 	}
 	reg = regVLAN_0 + (vid / 32) * 4;
 	bit = 1 << vid % 32;
 	val = READ_REG(priv, reg);
-	pr_debug("reg =%x, val =%x, bit =%d\n", reg, val, bit);
+	netdev_dbg(ndev, "reg =%x, val =%x, bit =%d\n", reg, val, bit);
 	if (enable)
 		val |= bit;
 	else
 		val &= ~bit;
-	pr_debug("new val %x\n", val);
+	netdev_dbg(ndev, "new val %x\n", val);
 	WRITE_REG(priv, reg, val);
 
 }
@@ -1499,12 +1508,12 @@ static int bdx_change_mtu(struct net_device *ndev, int new_mtu)
 
 	/* enforce minimum frame size */
 	if (new_mtu < ETH_ZLEN) {
-		pr_err("%s mtu %d is less then minimal %d\n", ndev->name,
-		       new_mtu, ETH_ZLEN);
+		netdev_err(ndev, "mtu %d is less then minimal %d\n",
+			   new_mtu, ETH_ZLEN);
 		return -EINVAL;
 	} else if (new_mtu > BDX_MAX_MTU) {
-		pr_err("%s mtu %d is greater then max mtu %d\n", ndev->name,
-		       new_mtu, BDX_MAX_MTU);
+		netdev_err(ndev, "mtu %d is greater then max mtu %d\n",
+			   new_mtu, BDX_MAX_MTU);
 		return -EINVAL;
 	}
 
@@ -1806,7 +1815,8 @@ static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
 
 }
 
-static int bdx_rx_set_page_size(int buf_size, int *page_used)
+static int bdx_rx_set_page_size(struct bdx_priv *priv, int buf_size,
+				int *page_used)
 {
 	int page_unused = buf_size;
 	int min_page_size = PAGE_SIZE * (1 << get_order(buf_size));
@@ -1819,8 +1829,8 @@ static int bdx_rx_set_page_size(int buf_size, int *page_used)
 			page_unused = unused;
 			page_size = psz;
 		}
-		pr_debug("psz %d page_size %d unused %d \n", psz, page_size,
-			 unused);
+		netdev_dbg(priv->ndev, "psz %d page_size %d unused %d \n",
+			   psz, page_size, unused);
 	}
 	*page_used = page_size - page_unused;
 
@@ -1853,7 +1863,8 @@ static int bdx_rx_alloc_page(struct bdx_priv *priv, struct bdx_page *bdx_page)
 		} else {
 			__free_pages(bdx_page->page,
 				     priv->rx_page_table.page_order);
-			pr_err("Failed to map page %p !\n", bdx_page->page);
+			netdev_err(priv->ndev, "Failed to map page %p !\n",
+				   bdx_page->page);
 		}
 	}
 
@@ -1871,7 +1882,7 @@ static int bdx_rx_alloc_pages(struct bdx_priv *priv)
 
 	do {
 		priv->rx_page_table.page_size =
-		    bdx_rx_set_page_size(buf_size, &page_used);
+		    bdx_rx_set_page_size(priv, buf_size, &page_used);
 		nPages = (db->nelem * buf_size + (page_used - 1)) / page_used;
 		priv->rx_page_table.gfp_mask = GFP_ATOMIC | __GFP_NOWARN;
 		if (priv->rx_page_table.page_size > PAGE_SIZE) {
@@ -1879,14 +1890,16 @@ static int bdx_rx_alloc_pages(struct bdx_priv *priv)
 		}
 		priv->rx_page_table.page_order =
 		    get_order(priv->rx_page_table.page_size);
-		pr_debug
-		    ("buf_size %d nelem %d page_size %d page_used %d nPages %d\n",
+		netdev_dbg
+		    (priv->ndev,
+		     "buf_size %d nelem %d page_size %d page_used %d nPages %d\n",
 		     buf_size, db->nelem, priv->rx_page_table.page_size,
 		     page_used, nPages);
 		priv->rx_page_table.bdx_pages =
 		    vmalloc(sizeof(struct bdx_page) * nPages);
 		if (priv->rx_page_table.bdx_pages == NULL) {
-			pr_err("Cannot allocate page table !\n");
+			netdev_err(priv->ndev,
+				   "Cannot allocate page table !\n");
 			break;
 		} else {
 			memset(priv->rx_page_table.bdx_pages, 0,
@@ -1903,8 +1916,9 @@ static int bdx_rx_alloc_pages(struct bdx_priv *priv)
 				bdx_page->status = 'F';
 				priv->rx_page_table.nFrees += 1;
 			} else {
-				pr_err("Allocated only %d pages out of %d\n", j,
-				       nPages);
+				netdev_err(priv->ndev,
+					   "Allocated only %d pages out of %d\n",
+					   j, nPages);
 				nPages = j;
 				break;
 			}
@@ -1979,7 +1993,7 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 			if (likely
 			    (page_count(((struct bdx_page *)pos)->page) == 2)) {
 				rPage = ((struct bdx_page *)pos);
-				pr_debug("nLoops %d ", nLoops);
+				netdev_dbg(priv->ndev, "nLoops %d ", nLoops);
 				dbg_printRxPage(0, rPage);
 				list_del(pos);
 				rPage->status = ' ';
@@ -1997,8 +2011,9 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 			firstPage =
 			    list_first_entry(&priv->rx_page_table.free_list,
 					     struct bdx_page, free);
-			pr_debug("Replacing - loops %d nFrees %d\n", nLoops,
-				 priv->rx_page_table.nFrees);
+			netdev_dbg(priv->ndev,
+				   "Replacing - loops %d nFrees %d\n", nLoops,
+				   priv->rx_page_table.nFrees);
 			dbg_printRxPage('\n', firstPage);
 			bdx_rx_free_bdx_page(priv, firstPage);
 			if (bdx_rx_alloc_page(priv, firstPage) == 0) {
@@ -2008,8 +2023,9 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 				priv->rx_page_table.nFrees -= 1;
 				bdx_rx_ref_page(rPage);
 			} else {
-				pr_info
-				    ("Page alloc failed nFrees %d max_frees %d order %d\n",
+				netdev_info
+				    (priv->ndev,
+				     "Page alloc failed nFrees %d max_frees %d order %d\n",
 				     priv->rx_page_table.nFrees,
 				     priv->rx_page_table.max_frees,
 				     priv->rx_page_table.page_order);
@@ -2082,7 +2098,7 @@ static int bdx_rx_init(struct bdx_priv *priv)
 	return 0;
 
 err_mem:
-	pr_err("%s: Rx init failed\n", priv->ndev->name);
+	netdev_err(priv->ndev, "Rx init failed\n");
 	return -ENOMEM;
 }
 
@@ -2097,8 +2113,8 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 	struct rx_map *dm;
 	u16 i;
 
-	pr_debug("total =%d free =%d busy =%d\n", db->nelem,
-		 bdx_rxdb_available(db), db->nelem - bdx_rxdb_available(db));
+	netdev_dbg(priv->ndev, "total =%d free =%d busy =%d\n", db->nelem,
+		   bdx_rxdb_available(db), db->nelem - bdx_rxdb_available(db));
 	while (bdx_rxdb_available(db) > 0) {
 		i = bdx_rxdb_alloc_elem(db);
 		dm = bdx_rxdb_addr_elem(db, i);
@@ -2169,11 +2185,12 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	int page_off = -1;
 	u64 dma = 0ULL;
 
-	pr_debug("_bdx_rx_alloc_buffers is at %p\n", _bdx_rx_alloc_buffers);
+	netdev_dbg(priv->ndev, "_bdx_rx_alloc_buffers is at %p\n",
+		   _bdx_rx_alloc_buffers);
 	dno = bdx_rxdb_available(db) - 1;
 	page_size = bdx_rx_get_page_size(priv);
-	pr_debug("dno %d page_size %d buf_size %d\n", dno, page_size,
-		 priv->rx_page_table.buf_size);
+	netdev_dbg(priv->ndev, "dno %d page_size %d buf_size %d\n", dno,
+		   page_size, priv->rx_page_table.buf_size);
 	while (dno > 0) {
 
 		/*
@@ -2192,8 +2209,9 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 				u32 timeout;
 				timeout = 1000000;	/* 1/5 sec */
 				WRITE_REG(priv, 0x5154, timeout);
-				pr_debug
-				    ("warning - system memory is temporary low\n");
+				netdev_dbg
+				    (priv->ndev,
+				     "warning - system memory is temporary low\n");
 				break;
 			}
 			page_off = ((page_size / buf_size) - 1) * buf_size;
@@ -2214,8 +2232,8 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 		bdx_rx_set_dm_page(dm, bdx_page);
 		dm->off = page_off;
 		dm->dma = dma + page_off;
-		pr_debug("dm size %d off %d dma %p\n", dm->size, dm->off,
-			 (void *)dm->dma);
+		netdev_dbg(priv->ndev, "dm size %d off %d dma %p\n",
+			   dm->size, dm->off, (void *)dm->dma);
 		page_off -= buf_size;
 
 		rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO =1 BC =3 */
@@ -2230,19 +2248,19 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 			f->m.wptr = delta;
 			if (delta > 0) {
 				memcpy(f->m.va, f->m.va + f->m.memsz, delta);
-				pr_debug("Wrapped descriptor\n");
+				netdev_dbg(priv->ndev, "Wrapped descriptor\n");
 			}
 		}
 		dno--;
 	}
-	pr_debug("nPages %d\n", nPages);
+	netdev_dbg(priv->ndev, "nPages %d\n", nPages);
 	WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
-	pr_debug("WRITE_REG 0x%04x f->m.reg_WPTR 0x%x\n", f->m.reg_WPTR,
-		 f->m.wptr & TXF_WPTR_WR_PTR);
-	pr_debug("READ_REG  0x%04x f->m.reg_RPTR=0x%x\n", f->m.reg_RPTR,
-		 READ_REG(priv, f->m.reg_RPTR));
-	pr_debug("READ_REG  0x%04x f->m.reg_WPTR=0x%x\n", f->m.reg_WPTR,
-		 READ_REG(priv, f->m.reg_WPTR));
+	netdev_dbg(priv->ndev, "WRITE_REG 0x%04x f->m.reg_WPTR 0x%x\n",
+		   f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
+	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->m.reg_RPTR=0x%x\n",
+		   f->m.reg_RPTR, READ_REG(priv, f->m.reg_RPTR));
+	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->m.reg_WPTR=0x%x\n",
+		   f->m.reg_WPTR, READ_REG(priv, f->m.reg_WPTR));
 	dbg_printFifo(&priv->rxf_fifo0.m, (char *)"RXF");
 
 }
@@ -2273,7 +2291,7 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 		f->m.wptr = delta;
 		if (delta > 0) {
 			memcpy(f->m.va, f->m.va + f->m.memsz, delta);
-			pr_debug("wrapped descriptor\n");
+			netdev_dbg(priv->ndev, "wrapped descriptor\n");
 		}
 	}
 
@@ -2321,7 +2339,7 @@ static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 
 #define PKT_ERR_LEN		(70)
 
-static int bdx_rx_error(char *pkt, u32 rxd_err, u16 len)
+static int bdx_rx_error(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
 {
 	struct ethhdr *eth = (struct ethhdr *)pkt;
 	struct iphdr *iph =
@@ -2334,7 +2352,8 @@ static int bdx_rx_error(char *pkt, u32 rxd_err, u16 len)
 		struct udphdr *udp =
 		    (struct udphdr *)((u8 *) iph + sizeof(struct iphdr));
 		if (udp->check == 0) {
-			pr_debug("false rxd_err = 0x%x\n", rxd_err);
+			netdev_dbg(priv->ndev, "false rxd_err = 0x%x\n",
+				   rxd_err);
 			rVal = 0;	/* Work around H/W false error indication */
 		} else if (len < PKT_ERR_LEN) {
 			u16 udpSum;
@@ -2345,7 +2364,8 @@ static int bdx_rx_error(char *pkt, u32 rxd_err, u16 len)
 					(u16 *) & iph->saddr,
 					(u16 *) & iph->daddr, IPPROTO_UDP);
 			if (udpSum == 0xFFFF) {
-				pr_debug("false rxd_err = 0x%x\n", rxd_err);
+				netdev_dbg(priv->ndev,
+					   "false rxd_err = 0x%x\n", rxd_err);
 				rVal = 0;	/* Work around H/W false error indication */
 			}
 		}
@@ -2359,7 +2379,8 @@ static int bdx_rx_error(char *pkt, u32 rxd_err, u16 len)
 				(u16 *) & iph->saddr, (u16 *) & iph->daddr,
 				IPPROTO_TCP);
 		if (tcpSum == 0xFFFF) {
-			pr_debug("false rxd_err = 0x%x\n", rxd_err);
+			netdev_dbg(priv->ndev, "false rxd_err = 0x%x\n",
+				   rxd_err);
 			rVal = 0;	/* Work around H/W false error indication */
 		}
 	}
@@ -2433,8 +2454,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		size -= tmp_len;
 		/* CHECK FOR A PARTIALLY ARRIVED DESCRIPTOR */
 		if (size < 0) {
-			pr_debug
-			    ("bdx_rx_receive() PARTIALLY ARRIVED DESCRIPTOR tmp_len %d\n",
+			netdev_dbg
+			    (priv->ndev,
+			     "bdx_rx_receive() PARTIALLY ARRIVED DESCRIPTOR tmp_len %d\n",
 			     tmp_len);
 			break;
 		}
@@ -2445,8 +2467,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 			f->m.rptr = tmp_len;
 			if (tmp_len > 0) {
 				/* COPY PARTIAL DESCRIPTOR TO THE END OF THE QUEUE */
-				pr_debug("wrapped desc rptr=%d tmp_len=%d\n",
-					 f->m.rptr, tmp_len);
+				netdev_dbg(priv->ndev,
+					   "wrapped desc rptr=%d tmp_len=%d\n",
+					   f->m.rptr, tmp_len);
 				memcpy(f->m.va + f->m.memsz, f->m.va, tmp_len);
 			}
 		}
@@ -2469,17 +2492,18 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 				pkt =
 				    ((char *)page_address(bdx_page->page) +
 				     dm->off);
-				bErr = bdx_rx_error(pkt, rxd_err, len);
+				bErr = bdx_rx_error(priv, pkt, rxd_err, len);
 			}
 			if (bErr) {
 
-				pr_err("rxd_err = 0x%x\n", rxd_err);
+				netdev_err(priv->ndev, "rxd_err = 0x%x\n",
+					   rxd_err);
 				priv->net_stats.rx_errors++;
 				bdx_recycle_skb(priv, rxdd);
 				continue;
 			}
 		}
-		pr_debug("tn40xx: * RX %d *\n", len);
+		netdev_dbg(priv->ndev, "tn40xx: * RX %d *\n", len);
 		rxf_fifo = &priv->rxf_fifo0;
 
 		/*
@@ -2493,7 +2517,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		 *       the need to allocate an skb for each packet.
 		 */
 		if ((skb = napi_get_frags(&priv->napi)) == NULL) {
-			pr_err("napi_get_frags failed\n");
+			netdev_err(priv->ndev, "napi_get_frags failed\n");
 			break;
 		}
 		skb->ip_summed =
@@ -2509,7 +2533,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 #if defined(USE_RSS)
 		skb->hash = CPU_CHIP_SWAP32(rxdd->rss_hash);
 		skb->l4_hash = 1;
-		pr_debug("rxhash    = 0x%x\n", skb->hash);
+		netdev_dbg(priv->ndev, "rxhash    = 0x%x\n", skb->hash);
 #endif /* USE_RSS */
 		priv->net_stats.rx_bytes += len;
 
@@ -2743,11 +2767,11 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 	int copyFrags = 0;
 	unsigned int size;
 
-	pr_debug("TX skb %p skbLen %d dataLen %d frags %d\n", skb,
-		 skb->len, skb->data_len, nrFrags);
+	netdev_dbg(priv->ndev, "TX skb %p skbLen %d dataLen %d frags %d\n",
+		   skb, skb->len, skb->data_len, nrFrags);
 
 	if (nrFrags > MAX_PBL - 1) {
-		pr_err("MAX PBL exceeded %d !!!\n", nrFrags);
+		netdev_err(priv->ndev, "MAX PBL exceeded %d !!!\n", nrFrags);
 		return -1;
 	}
 	*nr_frags = nrFrags;
@@ -2842,7 +2866,7 @@ static int bdx_tx_init(struct bdx_priv *priv)
 	return 0;
 
 err_mem:
-	pr_err("%s Tx init failed\n", priv->ndev->name);
+	netdev_err(priv->ndev, "Tx init failed\n");
 	return -ENOMEM;
 }
 
@@ -2866,7 +2890,7 @@ static inline int bdx_tx_space(struct bdx_priv *priv)
 
 void bdx_tx_timeout(struct net_device *ndev)
 {
-	pr_debug("%s: %s: TX timeout\n", BDX_DRV_NAME, ndev->name);
+	netdev_dbg(ndev, "TX timeout\n");
 }
 
 /* bdx_tx_transmit - Send a packet to the NIC.
@@ -2916,8 +2940,8 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	if (skb_shinfo(skb)->gso_size) {
 		txd_mss = skb_shinfo(skb)->gso_size;
 		txd_lgsnd = 1;
-		pr_debug("skb %p pkt len %d gso size = %d\n", skb,
-			 pkt_len, txd_mss);
+		netdev_dbg(ndev, "skb %p pkt len %d gso size = %d\n", skb,
+			   pkt_len, txd_mss);
 	}
 
 	if (vlan_tx_tag_present(skb)) {
@@ -2934,9 +2958,10 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 			    (txd_sizes[nr_frags].qwords, txd_checksum,
 			     txd_vtag, txd_lgsnd, txd_vlan_id));
 
-	pr_debug("w1 qwords[%d] %d\n", nr_frags, txd_sizes[nr_frags].qwords);
-	pr_debug("TxD desc w1: 0x%x w2: mss 0x%x len 0x%x\n",
-		 txdd->txd_val1, txdd->mss, txdd->length);
+	netdev_dbg(ndev, "w1 qwords[%d] %d\n", nr_frags,
+		   txd_sizes[nr_frags].qwords);
+	netdev_dbg(ndev, "TxD desc w1: 0x%x w2: mss 0x%x len 0x%x\n",
+		   txdd->txd_val1, txdd->mss, txdd->length);
 
 	/* SHORT_PKT_FIX */
 	if (pkt_len < 60) {
@@ -2950,7 +2975,7 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 		pbl->len = CPU_CHIP_SWAP32(60 - pkt_len);
 		pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(priv->b0_dma));
 		pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(priv->b0_dma));
-		pr_debug("SHORT_PKT_FIX nr_frags : %d\n", nr_frags);
+		netdev_dbg(ndev, "SHORT_PKT_FIX nr_frags : %d\n", nr_frags);
 		dbg_printPBL(pbl);
 	}
 	/* SHORT_PKT_FIX end */
@@ -2993,8 +3018,7 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	priv->net_stats.tx_packets++;
 	priv->net_stats.tx_bytes += pkt_len;
 	if (priv->tx_level < BDX_MIN_TX_LEVEL) {
-		pr_debug("%s: %s: TX Q STOP level %d\n", BDX_DRV_NAME,
-			 ndev->name, priv->tx_level);
+		netdev_dbg(ndev, "TX Q STOP level %d\n", priv->tx_level);
 		netif_stop_queue(ndev);
 	}
 
@@ -3026,8 +3050,9 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 		BDX_ASSERT(db->rptr->len == 0);
 		do {
 			BDX_ASSERT(db->rptr->addr.dma == 0);
-			pr_debug("dma_unmap_page 0x%llx len %d\n",
-				 db->rptr->addr.dma, db->rptr->len);
+			netdev_dbg(priv->ndev,
+				   "dma_unmap_page 0x%llx len %d\n",
+				   db->rptr->addr.dma, db->rptr->len);
 			dma_unmap_page(&priv->pdev->dev, db->rptr->addr.dma,
 				       db->rptr->len, DMA_TO_DEVICE);
 			bdx_tx_db_inc_rptr(db);
@@ -3036,8 +3061,8 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 
 		/* Now should come skb pointer - free it */
 		dev_kfree_skb_any(db->rptr->addr.skb);
-		pr_debug("dev_kfree_skb_any %p %d\n", db->rptr->addr.skb,
-			 -db->rptr->len);
+		netdev_dbg(priv->ndev, "dev_kfree_skb_any %p %d\n",
+			   db->rptr->addr.skb, -db->rptr->len);
 		bdx_tx_db_inc_rptr(db);
 	}
 
@@ -3059,8 +3084,7 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	if (unlikely(netif_queue_stopped(priv->ndev) &&
 		     netif_carrier_ok(priv->ndev) &&
 		     (priv->tx_level >= BDX_MAX_TX_LEVEL / 2))) {
-		pr_debug("%s: %s: TX Q WAKE level %d\n", BDX_DRV_NAME,
-			 priv->ndev->name, priv->tx_level);
+		netdev_dbg(priv->ndev, "TX Q WAKE level %d\n", priv->tx_level);
 		netif_wake_queue(priv->ndev);
 	}
 	netif_tx_unlock(priv->ndev);
@@ -3159,16 +3183,18 @@ static void bdx_tx_push_desc_safe(struct bdx_priv *priv, void *data, int size)
 		int avail = bdx_tx_space(priv) - 8;
 		if (avail <= 0) {
 			if (timer++ > 300) {	/* Prevent endless loop */
-				pr_debug
-				    ("timeout while writing desc to TxD fifo\n");
+				netdev_dbg
+				    (priv->ndev,
+				     "timeout while writing desc to TxD fifo\n");
 				break;
 			}
 			udelay(50);	/* Give the HW a chance to clean the fifo */
 			continue;
 		}
 		avail = MIN(avail, size);
-		pr_debug("about to push  %d bytes starting %p size %d\n", avail,
-			 data, size);
+		netdev_dbg(priv->ndev,
+			   "about to push  %d bytes starting %p size %d\n",
+			   avail, data, size);
 		bdx_tx_push_desc(priv, data, avail);
 		size -= avail;
 		data += avail;
@@ -3183,18 +3209,18 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 	int error;
 	u16 dev, addr;
 
-	pr_debug("jiffies =%ld cmd =%d\n", jiffies, cmd);
+	netdev_dbg(ndev, "jiffies =%ld cmd =%d\n", jiffies, cmd);
 	if (cmd != SIOCDEVPRIVATE) {
 		error =
 		    copy_from_user(&tn40_ioctl, ifr->ifr_data,
 				   sizeof(tn40_ioctl));
 		if (error) {
-			pr_err("cant copy from user\n");
+			netdev_err(ndev, "cant copy from user\n");
 			return error;
 		}
-		pr_debug("%d 0x%x 0x%x 0x%p\n", tn40_ioctl.data[0],
-			 tn40_ioctl.data[1], tn40_ioctl.data[2],
-			 tn40_ioctl.buf);
+		netdev_dbg(ndev, "%d 0x%x 0x%x 0x%p\n", tn40_ioctl.data[0],
+			   tn40_ioctl.data[1], tn40_ioctl.data[2],
+			   tn40_ioctl.buf);
 	}
 	if (!capable(CAP_SYS_RAWIO))
 		return -EPERM;
@@ -3224,8 +3250,9 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 		if (error < 0)
 			return error;
 		tn40_ioctl.data[2] = READ_REG(priv, tn40_ioctl.data[1]);
-		pr_debug("read_reg(0x%x)=0x%x (dec %d)\n", tn40_ioctl.data[1],
-			 tn40_ioctl.data[2], tn40_ioctl.data[2]);
+		netdev_dbg(ndev, "read_reg(0x%x)=0x%x (dec %d)\n",
+			   tn40_ioctl.data[1], tn40_ioctl.data[2],
+			   tn40_ioctl.data[2]);
 		error =
 		    copy_to_user(ifr->ifr_data, &tn40_ioctl,
 				 sizeof(tn40_ioctl));
@@ -3301,12 +3328,14 @@ static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
 				bytes =
 				    copy_to_user(tn40_ioctl.buf, buf,
 						 tn40_ioctl.data[2]);
-				pr_debug("copy_to_user %p %u return %lu\n",
-					 tn40_ioctl.buf, tn40_ioctl.data[2],
-					 bytes);
+				netdev_dbg(ndev,
+					   "copy_to_user %p %u return %lu\n",
+					   tn40_ioctl.buf, tn40_ioctl.data[2],
+					   bytes);
 			} else {
-				pr_debug
-				    ("=================== EOF =================\n");
+				netdev_dbg
+				    (ndev,
+				     "=================== EOF =================\n");
 				error = -EIO;
 			}
 			return error;
@@ -3436,7 +3465,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 
 	nic = vmalloc(sizeof(*nic));
 	if (!nic) {
-		pr_err("bdx_probe() no memory\n");
+		dev_err(&pdev->dev, "bdx_probe() no memory\n");
 		return -ENOMEM;
 
 	}
@@ -3467,32 +3496,33 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	pciaddr = pci_resource_start(pdev, 0);
 	if (!pciaddr) {
 		err = -EIO;
-		pr_err("no MMIO resource\n");
+		dev_err(&pdev->dev, "no MMIO resource\n");
 		goto err_out_res;
 	}
 	if ((regionSize = pci_resource_len(pdev, 0)) < BDX_REGS_SIZE) {
 		/*      err = -EIO; */
-		pr_err("MMIO resource (%x) too small\n", regionSize);
+		dev_err(&pdev->dev, "MMIO resource (%x) too small\n",
+			regionSize);
 		/*      goto err_out_res; */
 	}
 
 	nic->regs = ioremap(pciaddr, regionSize);
 	if (!nic->regs) {
 		err = -EIO;
-		pr_err("ioremap failed\n");
+		dev_err(&pdev->dev, "ioremap failed\n");
 		goto err_out_res;
 	}
 
 	if (pdev->irq < 2) {
 		err = -EIO;
-		pr_err("invalid irq (%d)\n", pdev->irq);
+		dev_err(&pdev->dev, "invalid irq (%d)\n", pdev->irq);
 		goto err_out_iomap;
 	}
 	pci_set_drvdata(pdev, nic);
 
 	nic->port_num = bdx_get_ports_by_id(pdev->vendor, pdev->device);
 	print_hw_id(pdev);
-	bdx_hw_reset_direct(nic->regs);
+	bdx_hw_reset_direct(pdev, nic->regs);
 
 	nic->irq_type = IRQ_INTX;
 #ifdef TN40_IRQ_MSI
@@ -3504,7 +3534,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
     /************** netdev **************/
 	if (!(ndev = alloc_etherdev(sizeof(struct bdx_priv)))) {
 		err = -ENOMEM;
-		pr_err("alloc_etherdev failed\n");
+		dev_err(&pdev->dev, "alloc_etherdev failed\n");
 		goto err_out_iomap;
 	}
 
@@ -3560,7 +3590,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	LUXOR__NAPI_ADD(ndev, &priv->napi, bdx_poll, 64);
 
 	if ((readl(nic->regs + FPGA_VER) & 0xFFF) == 308) {
-		pr_debug("HW statistics not supported\n");
+		dev_dbg(&ndev->dev, "HW statistics not supported\n");
 		priv->stats_flag = 0;
 	} else {
 		priv->stats_flag = 1;
@@ -3598,12 +3628,12 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	ndev->hw_features |= ndev->features;
 
 	if (bdx_read_mac(priv)) {
-		pr_err("load MAC address failed\n");
+		dev_err(&pdev->dev, "load MAC address failed\n");
 		goto err_out_iomap;
 	}
 	SET_NETDEV_DEV(ndev, &pdev->dev);
 	if ((err = register_netdev(ndev))) {
-		pr_err("register_netdev failed\n");
+		dev_err(&pdev->dev, "register_netdev failed\n");
 		goto err_out_free;
 	}
 	bdx_reset(priv);
@@ -3636,7 +3666,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 #endif
 
 	return 0;
-	pr_err("bdx_probe() %d\n", err);
 err_out_free:
 	unregister_netdev(ndev);
 	free_netdev(ndev);
@@ -4039,7 +4068,7 @@ static int bdx_get_eee(struct net_device *netdev, struct ethtool_eee *edata)
 	struct bdx_priv *priv = netdev_priv(netdev);
 
 	if (priv->phy_ops.get_eee == NULL) {
-		pr_err("EEE Functionality is not supported\n");
+		netdev_err(netdev, "EEE Functionality is not supported\n");
 		err = -EOPNOTSUPP;
 	} else {
 		err = priv->phy_ops.get_eee(netdev, edata);
@@ -4063,10 +4092,10 @@ static int bdx_set_eee(struct net_device *netdev, struct ethtool_eee *edata)
 	struct bdx_priv *priv = netdev_priv(netdev);
 
 	if (priv->phy_ops.set_eee == NULL) {
-		pr_err("EEE Functionality is not supported\n");
+		netdev_err(netdev, "EEE Functionality is not supported\n");
 		err = -EOPNOTSUPP;
 	} else {
-		pr_info("Setting EEE\n");
+		netdev_info(netdev, "Setting EEE\n");
 		err = priv->phy_ops.set_eee(priv);
 	}
 	return err;
@@ -4181,14 +4210,13 @@ static int bdx_suspend(struct device *dev)
 	struct bdx_priv *priv = nic->priv;
 	int err;
 
-	pr_info("System suspend\n");
+	netdev_info(priv->ndev, "System suspend\n");
 	bdx_stop(priv);
 	err = pci_save_state(pdev);
-	pr_debug("pci_save_state = %d\n", err);
+	netdev_dbg(priv->ndev, "pci_save_state = %d\n", err);
 	err = pci_prepare_to_sleep(pdev);
-	pr_debug("pci_prepare_to_sleep = %d\n", err);
+	netdev_dbg(priv->ndev, "pci_prepare_to_sleep = %d\n", err);
 	return 0;
-
 }
 
 static int bdx_resume(struct device *dev)
@@ -4198,19 +4226,21 @@ static int bdx_resume(struct device *dev)
 	struct bdx_priv *priv = nic->priv;
 	int rc = -1;
 
-	pr_info("System resume\n");
+	netdev_info(priv->ndev, "System resume\n");
 	do {
 		pci_restore_state(pdev);
 		rc = pci_save_state(pdev);
-		pr_debug("pci_save_state = %d\n", rc);
+		netdev_dbg(priv->ndev, "pci_save_state = %d\n", rc);
 		setMDIOSpeed(priv, priv->phy_ops.mdio_speed);
 		if (priv->phy_ops.mdio_reset(priv, priv->phy_mdio_port,
 					     priv->phy_type) != 0) {
-			pr_err("bdx_resume() failed to load PHY");
+			netdev_err(priv->ndev,
+				   "bdx_resume() failed to load PHY");
 			break;
 		}
 		if (bdx_reset(priv) != 0) {
-			pr_err("bdx_resume() bdx_reset failed\n");
+			netdev_err(priv->ndev,
+				   "bdx_resume() bdx_reset failed\n");
 			break;
 		}
 		WRITE_REG(priv, regMDIO_CMD_STAT, 0x3ec8);
@@ -4250,8 +4280,9 @@ __refdata static struct pci_driver bdx_pci_driver = {
 int bdx_no_hotplug(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 
-	pr_err
-	    ("rescan/hotplug is *NOT* supported!, please use rmmod/insmod instead\n");
+	dev_err
+	    (&pdev->dev,
+	     "rescan/hotplug is *NOT* supported!, please use rmmod/insmod instead\n");
 	return -1;
 
 }
@@ -4271,10 +4302,11 @@ static void __init bdx_scan_pci(void)
 				       bdx_pci_tbl[j].subvendor,
 				       bdx_pci_tbl[j].subdevice, dev))) {
 			nDevices += 1;
-			pr_info("%d %04x:%04x:%04x:%04x\n", nDevices,
-				bdx_pci_tbl[j].vendor, bdx_pci_tbl[j].device,
-				bdx_pci_tbl[j].subvendor,
-				bdx_pci_tbl[j].subdevice);
+			dev_info(&dev->dev, "%d %04x:%04x:%04x:%04x\n",
+				 nDevices, bdx_pci_tbl[j].vendor,
+				 bdx_pci_tbl[j].device,
+				 bdx_pci_tbl[j].subvendor,
+				 bdx_pci_tbl[j].subdevice);
 			if (nDevices > 20) {
 				pr_err("to many devices detected ?!\n");
 				break;

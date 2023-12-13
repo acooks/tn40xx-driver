@@ -25,13 +25,9 @@ int QT2025_get_link_ksettings(struct net_device *netdev,
 int QT2025_set_link_ksettings(struct net_device *netdev,
 			      const struct ethtool_link_ksettings *cmd)
 {
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	pr_err("%s Does not support ethtool -s option\n", priv->ndev->name);
-
+	netdev_err(netdev, "Does not support ethtool -s option\n");
 	return -EPERM;
 }
-
 
 __init void QT2025_register_settings(struct bdx_priv *priv)
 {
