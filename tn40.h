@@ -52,7 +52,6 @@
 
 /*#define _EEE_ */
 #define TN40_THUNDERBOLT
-#define TN40_IRQ_MSI
 /*#define TN40_PTP */
 /*
  * Trace log
