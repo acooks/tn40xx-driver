@@ -35,6 +35,7 @@ static int QT2025_get_link_speed(struct bdx_priv *priv)
 __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 			     unsigned short phy)
 {
+	struct device *dev = &priv->pdev->dev;
 	u16 *phy_fw = QT2025_phy_firmware, j, fwVer01, fwVer2, fwVer3, module;
 	int s_fw, i, a;
 	int phy_id = 0, rev = 0;
@@ -48,13 +49,14 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 		break;
 
 	default:
-		pr_err("PHY ID =0x%x, returning\n", (0xFF & (phy_id >> 8)));
+		dev_err(dev, "PHY ID =0x%x, returning\n",
+			(0xFF & (phy_id >> 8)));
 		return 1;
 		break;
 	}
 	switch (rev) {
 	default:
-		pr_err("bdx: failed unknown PHY ID %x\n", phy_id);
+		dev_err(dev, "bdx: failed unknown PHY ID %x\n", phy_id);
 		return 1;
 		break;
 
@@ -93,7 +95,7 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 			}
 		}
 		if (!i) {
-			pr_err("PHY init error\n");
+			dev_err(dev, "PHY init error\n");
 		}
 		break;
 	}
@@ -102,10 +104,10 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 	fwVer3 = bdx_mdio_read(priv, 3, port, 0xD7F5);
 	module = bdx_mdio_read(priv, 3, port, 0xD70C);
 
-	pr_info("QT2025 FW version %d.%d.%d.%d module type 0x%x\n",
-		((fwVer01 >> 4) & 0xf),
-		(fwVer01 & 0xf),
-		(fwVer2 & 0xff), (fwVer3 & 0xff), (u32) (module & 0xff));
+	dev_info(dev,
+		 "QT2025 FW version %d.%d.%d.%d module type 0x%x\n",
+		 ((fwVer01 >> 4) & 0xf), (fwVer01 & 0xf), (fwVer2 & 0xff),
+		 (fwVer3 & 0xff), (u32) (module & 0xff));
 
 	priv->link_speed = QT2025_get_link_speed(priv);
 	bdx_speed_set(priv, priv->link_speed);
@@ -134,24 +136,26 @@ __init int QT2025_mdio_reset(struct bdx_priv *priv, int port,
 u32 QT2025_link_changed(struct bdx_priv *priv)
 {
 	u32 link = 0;
+	struct net_device *ndev = priv->ndev;
 
 	priv->link_speed = QT2025_get_link_speed(priv);
 	link = READ_REG(priv, regMAC_LNK_STAT) & MAC_LINK_STAT;
 	if (link) {
-		pr_debug("QT2025 link speed is %s\n",
-			 (priv->link_speed == SPEED_10000) ? "10G" : "1G");
+		netdev_dbg(ndev, "QT2025 link speed is %s\n",
+			   (priv->link_speed == SPEED_10000) ? "10G" : "1G");
 		link = priv->link_speed;
 	} else {
 		if (priv->link_loop_cnt++ > LINK_LOOP_MAX) {
-			pr_debug
-			    ("QT2025 trying to recover link after %d tries\n",
+			netdev_dbg
+			    (ndev,
+			     "QT2025 trying to recover link after %d tries\n",
 			     LINK_LOOP_MAX);
 			/* MAC reset */
 			bdx_speed_set(priv, 0);
 			bdx_speed_set(priv, priv->link_speed);
 			priv->link_loop_cnt = 0;
 		}
-		pr_debug("QT2025 no link, setting 1/5 sec timer\n");
+		netdev_dbg(ndev, "QT2025 no link, setting 1/5 sec timer\n");
 		WRITE_REG(priv, 0x5150, 1000000);	/* 1/5 sec timeout */
 	}
 
@@ -177,7 +181,7 @@ void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 		break;
 
 	default:
-		pr_debug("QT2025_leds() unknown op 0x%x\n", op);
+		netdev_dbg(priv->ndev, "QT2025_leds() unknown op 0x%x\n", op);
 		break;
 
 	}

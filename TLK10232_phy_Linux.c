@@ -25,9 +25,7 @@ int TLK10232_get_link_ksettings(struct net_device *netdev,
 int TLK10232_set_link_ksettings(struct net_device *netdev,
 				const struct ethtool_link_ksettings *cmd)
 {
-	struct bdx_priv *priv = netdev_priv(netdev);
-
-	pr_err("%s Does not support ethtool -s option\n", priv->ndev->name);
+	netdev_err(netdev, "Does not support ethtool -s option\n");
 
 	return -EPERM;
 }
