@@ -1342,9 +1342,7 @@ static void bdx_stop(struct bdx_priv *priv)
 		priv->state &= ~BDX_STATE_STARTED;
 		bdx_hw_stop(priv);
 		free_irq(priv->pdev->irq, priv->ndev);
-#ifdef TN40_IRQ_MSI
 		pci_free_irq_vectors(priv->pdev);
-#endif
 		bdx_sw_reset(priv);
 		bdx_rx_free(priv);
 		bdx_rx_free_pages(priv);
@@ -3442,9 +3440,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	u32 regionSize;
 	struct pci_nic *nic;
 	int phy;
-#ifdef TN40_IRQ_MSI
 	unsigned int nvec = 1;
-#endif
 
 	nic = vmalloc(sizeof(*nic));
 	if (!nic) {
@@ -3508,12 +3504,10 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	bdx_hw_reset_direct(pdev, nic->regs);
 
 	nic->irq_type = IRQ_INTX;
-#ifdef TN40_IRQ_MSI
 	nvec = pci_alloc_irq_vectors(pdev, 1, nvec, PCI_IRQ_MSI);
 	if (nvec < 0) {
 		goto err_out_iomap;
 	}
-#endif /* TN40_IRQ_MSI */
     /************** netdev **************/
 	if (!(ndev = alloc_etherdev(sizeof(struct bdx_priv)))) {
 		err = -ENOMEM;
