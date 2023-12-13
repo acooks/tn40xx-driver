@@ -3503,7 +3503,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	print_hw_id(pdev);
 	bdx_hw_reset_direct(pdev, nic->regs);
 
-	nic->irq_type = IRQ_INTX;
 	nvec = pci_alloc_irq_vectors(pdev, 1, nvec, PCI_IRQ_MSI);
 	if (nvec < 0) {
 		goto err_out_iomap;
@@ -4158,10 +4157,6 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 	bdx_tx_free(priv);
 	unregister_netdev(ndev);
 	free_netdev(ndev);
-
-	if (nic->irq_type == IRQ_MSI) {
-		pci_disable_msi(pdev);
-	}
 	iounmap(nic->regs);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
