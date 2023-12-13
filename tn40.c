@@ -2963,23 +2963,6 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	netdev_dbg(ndev, "TxD desc w1: 0x%x w2: mss 0x%x len 0x%x\n",
 		   txdd->txd_val1, txdd->mss, txdd->length);
 
-	/* SHORT_PKT_FIX */
-	if (pkt_len < 60) {
-		struct pbl *pbl = &txdd->pbl[++nr_frags];
-		txdd->length = CPU_CHIP_SWAP16(60);
-		txdd->txd_val1 =
-		    CPU_CHIP_SWAP32(TXD_W1_VAL
-				    (txd_sizes[nr_frags].qwords,
-				     txd_checksum, txd_vtag, txd_lgsnd,
-				     txd_vlan_id));
-		pbl->len = CPU_CHIP_SWAP32(60 - pkt_len);
-		pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(priv->b0_dma));
-		pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(priv->b0_dma));
-		netdev_dbg(ndev, "SHORT_PKT_FIX nr_frags : %d\n", nr_frags);
-		dbg_printPBL(pbl);
-	}
-	/* SHORT_PKT_FIX end */
-
 	/*
 	 * Increment TXD write pointer. In case of fifo wrapping copy reminder of
 	 *  the descriptor to the beginning
