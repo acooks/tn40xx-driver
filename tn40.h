@@ -44,7 +44,7 @@
 #define __initdata
 #endif
 
-#define BDX_DRV_VERSION   	"004"
+#define BDX_DRV_VERSION   	"005"
 #define DRIVER_AUTHOR     	"Tehuti networks"
 #define BDX_DRV_DESC      	"Tehuti Network Driver from https://github.com/acooks/tn40xx-driver"
 #define BDX_NIC_NAME      	"tn40xx"
