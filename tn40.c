@@ -3411,6 +3411,49 @@ static int bdx_get_phy_by_id(int vendor, int device, int subsystem, int port)
 
 }
 
+static void __init bdx_init_net_device(struct net_device *ndev,
+				       resource_size_t pciaddr, u32 regionSize,
+				       struct pci_dev *pdev)
+{
+	u64 dma_mask = dma_get_mask(&pdev->dev);
+	ndev->netdev_ops = &bdx_netdev_ops;
+	ndev->tx_queue_len = BDX_NDEV_TXQ_LEN;
+
+	/*
+	 * These fields are used for information purposes only,
+	 * so we use the same for all the ports on the board
+	 */
+	ndev->if_port = 0;
+	ndev->base_addr = pciaddr;
+	ndev->mem_start = pciaddr;
+	ndev->mem_end = pciaddr + regionSize;
+	ndev->irq = pdev->irq;
+	ndev->features = NETIF_F_IP_CSUM |
+	    NETIF_F_SG |
+	    NETIF_F_FRAGLIST |
+	    NETIF_F_TSO | NETIF_F_VLAN_TSO | NETIF_F_VLAN_CSUM | NETIF_F_GRO |
+	    NETIF_F_RXCSUM | NETIF_F_RXHASH;
+
+#ifdef NETIF_F_HW_VLAN_CTAG_RX
+	ndev->features |= NETIF_F_HW_VLAN_CTAG_TX |
+	    NETIF_F_HW_VLAN_CTAG_RX | NETIF_F_HW_VLAN_CTAG_FILTER;
+#else
+	ndev->features |= NETIF_F_HW_VLAN_TX |
+	    NETIF_F_HW_VLAN_RX | NETIF_F_HW_VLAN_FILTER;
+#endif
+
+	if (dma_mask & DMA_BIT_MASK(64)) {
+		ndev->features |= NETIF_F_HIGHDMA;
+		ndev->vlan_features |= NETIF_F_HIGHDMA;
+	}
+
+	ndev->vlan_features = (NETIF_F_IP_CSUM |
+			       NETIF_F_SG |
+			       NETIF_F_TSO | NETIF_F_GRO | NETIF_F_RXHASH);
+	ndev->min_mtu = ETH_ZLEN;
+	ndev->max_mtu = BDX_MAX_MTU;
+}
+
 /**
  * bdx_probe - Device Initialization Routine.
  *
@@ -3435,7 +3478,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 {
 	struct net_device *ndev;
 	struct bdx_priv *priv;
-	int err, pci_using_dac;
+	int err;
 	resource_size_t pciaddr;
 	u32 regionSize;
 	struct pci_nic *nic;
@@ -3453,25 +3496,15 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	if ((err = pci_enable_device(pdev)))	/* It triggers interrupt, dunno
 						   why. */
 		goto err_pci;	/* it's not a problem though */
-
-	if (!(err = dma_set_mask(&pdev->dev, LUXOR__DMA_64BIT_MASK)) &&
-	    !(err = dma_set_coherent_mask(&pdev->dev, LUXOR__DMA_64BIT_MASK))) {
-		pci_using_dac = 1;
-	} else {
-		if ((err = dma_set_mask(&pdev->dev, LUXOR__DMA_32BIT_MASK)) ||
-		    (err = dma_set_coherent_mask(&pdev->dev,
-						 LUXOR__DMA_32BIT_MASK))) {
-			pr_err("No usable DMA configuration - aborting\n");
-			goto err_dma;
-		}
-		pci_using_dac = 0;
+	if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64))) {
+		dev_err(&pdev->dev, "No usable DMA configuration - aborting\n");
+		err = -ENOMEM;
+		goto err_dma;
 	}
 
 	if ((err = pci_request_regions(pdev, BDX_DRV_NAME)))
 		goto err_dma;
-
 	pci_set_master(pdev);
-
 	pciaddr = pci_resource_start(pdev, 0);
 	if (!pciaddr) {
 		err = -EIO;
@@ -3507,53 +3540,18 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	if (nvec < 0) {
 		goto err_out_iomap;
 	}
-    /************** netdev **************/
+
+	/* netdev */
 	if (!(ndev = alloc_etherdev(sizeof(struct bdx_priv)))) {
 		err = -ENOMEM;
 		dev_err(&pdev->dev, "alloc_etherdev failed\n");
 		goto err_out_irq_vectors;
 	}
 
-	ndev->netdev_ops = &bdx_netdev_ops;
-	ndev->tx_queue_len = BDX_NDEV_TXQ_LEN;
-
-	/*
-	 * These fields are used for information purposes only,
-	 * so we use the same for all the ports on the board
-	 */
-	ndev->if_port = 0;
-	ndev->base_addr = pciaddr;
-	ndev->mem_start = pciaddr;
-	ndev->mem_end = pciaddr + regionSize;
-	ndev->irq = pdev->irq;
-	ndev->features = NETIF_F_IP_CSUM |
-	    NETIF_F_SG |
-	    NETIF_F_FRAGLIST |
-	    NETIF_F_TSO | NETIF_F_VLAN_TSO | NETIF_F_VLAN_CSUM | NETIF_F_GRO |
-	    NETIF_F_RXCSUM | NETIF_F_RXHASH;
-
-#ifdef NETIF_F_HW_VLAN_CTAG_RX
-	ndev->features |= NETIF_F_HW_VLAN_CTAG_TX |
-	    NETIF_F_HW_VLAN_CTAG_RX | NETIF_F_HW_VLAN_CTAG_FILTER;
-#else
-	ndev->features |= NETIF_F_HW_VLAN_TX |
-	    NETIF_F_HW_VLAN_RX | NETIF_F_HW_VLAN_FILTER;
-#endif
-
-	if (pci_using_dac)
-		ndev->features |= NETIF_F_HIGHDMA;
-
-	ndev->vlan_features = (NETIF_F_IP_CSUM |
-			       NETIF_F_SG |
-			       NETIF_F_TSO | NETIF_F_GRO | NETIF_F_RXHASH);
-	if (pci_using_dac)
-		ndev->vlan_features |= NETIF_F_HIGHDMA;
-	ndev->min_mtu = ETH_ZLEN;
-	ndev->max_mtu = BDX_MAX_MTU;
+	bdx_init_net_device(ndev, pciaddr, regionSize, pdev);
 
 	/************** PRIV ****************/
 	priv = nic->priv = netdev_priv(ndev);
-
 	memset(priv, 0, sizeof(struct bdx_priv));
 	priv->drv_name = BDX_DRV_NAME;
 	priv->pBdxRegs = nic->regs;

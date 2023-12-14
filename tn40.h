@@ -857,14 +857,6 @@ struct txf_desc {
 #define PCI_LINK_STATUS_REG 0x92
 #define GET_LINK_STATUS_LANES(x) GET_BITS_SHIFT(x, 6, 4)
 
-#if defined(DMA_BIT_MASK)
-#define LUXOR__DMA_64BIT_MASK   DMA_BIT_MASK(64)
-#define LUXOR__DMA_32BIT_MASK   DMA_BIT_MASK(32)
-#else
-#define LUXOR__DMA_64BIT_MASK   DMA_64BIT_MASK
-#define LUXOR__DMA_32BIT_MASK   DMA_32BIT_MASK
-#endif
-
 #if !defined(netdev_mc_count)
 #define netdev_mc_count(dev) ((dev)->mc_count)
 #define netdev_for_each_mc_addr(mclist, dev) \
