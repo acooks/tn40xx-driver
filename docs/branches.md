@@ -1,20 +1,34 @@
 # Branches
 
-This repo makes extensive use of branches to organise the changes to the vendor driver. For example,
+Historically, this repo made extensive use of branches to organise the changes to the vendor driver. For example,
 - `vendor-drop/v0.3.6.14.3`
 - `cleanup/v0.3.6.14.3`
 - `topic/remove-linux-2.6-support`
 
 A description of the purpose of each type of branch follows.
 
+## Develop branch
+
+Like many git projects, the `develop` branch is the main trunk where most topic branches are based on and merge back to.
+
 ## Release branches
 
-A release branch is a combination of (vendor release + cleanups + topic work). The release branch name is a simple monotonically increasing counter of the release number.
+The release branch name uses a simple monotonically increasing counter of the release number.
+
+Releases 001 to 004 were based on a combination of (vendor release + cleanups + topic work).
+
+Since there is no more vendor to produce further vendor releases, future releases of this driver can follow the more familiar git workflow where releases branch off `develop`.
+
+## Topic branches
+
+Features, bugfixes and improvements towards mainline inclusion are developed on these branches.
+
+Topic branches used to be based on cleanup branches, and were merged together for a release, but can now follow the usual pattern of branching patterns. Most topic branches will branch from `develop` and merging back to `develop`.
 
 
 ## Vendor drop branches
 
-Vendor releases are imported from their distributed tarball into `vendor-drop/` branches. These branches are used for easy access to the unmodified driver, as well as reference between vendor branches.
+Vendor releases were imported from their distributed tarball into `vendor-drop/` branches. These branches provide access to the historical unmodified driver, as well as reference between vendor branches.
 
 
 ## Cleanup branches
@@ -41,9 +55,4 @@ The cleanup transformation MUST:
 To apply the cleanup changes, run: `cleanup.sh`
 
 
-## Topic branches
-
-Features, bugfixes and improvements towards mainline inclusion are contained on these branches. For example, mainline Linux drivers do not have support for different kernel versions than the one that they ship with, so that support has to be removed.
-
-Topic branches are always based on cleanup branches.
 
