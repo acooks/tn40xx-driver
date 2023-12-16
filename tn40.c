@@ -3875,11 +3875,17 @@ static inline int bdx_tx_fifo_size_to_packets(int tx_size)
  * @kernel_ering
  * @extack
  */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+static void
+bdx_get_ringparam(struct net_device *netdev,
+		  struct ethtool_ringparam *ring)
+#else
 static void
 bdx_get_ringparam(struct net_device *netdev,
 		  struct ethtool_ringparam *ring,
 		  struct kernel_ethtool_ringparam *kernel_ering,
 		  struct netlink_ext_ack *extack)
+#endif
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
@@ -3896,11 +3902,17 @@ bdx_get_ringparam(struct net_device *netdev,
  * @netdev
  * @ring
  */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+static int
+bdx_set_ringparam(struct net_device *netdev,
+		  struct ethtool_ringparam *ring)
+#else
 static int
 bdx_set_ringparam(struct net_device *netdev,
 		  struct ethtool_ringparam *ring,
 		  struct kernel_ethtool_ringparam *kernel_ering,
 		  struct netlink_ext_ack *extack)
+#endif
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 	int rx_size = 0;
