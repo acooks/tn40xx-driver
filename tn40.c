@@ -3635,9 +3635,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	print_eth_id(ndev);
 
 	bdx_scan_pci();
-#ifdef TN40_MEMLOG
-	memLogInit();
-#endif
 
 	return 0;
 err_out_free:

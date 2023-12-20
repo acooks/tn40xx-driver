@@ -97,7 +97,6 @@ extern int g_memLog;
 #define MEMLOG1_ON
 #define MEMLOG_OFF
 #define memLog(args, ...)
-#define memLogInit()
 #define memLogDmesg()
 #define memLogGetLine(x) (0)
 #define memLogPrint()
