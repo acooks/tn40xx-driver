@@ -865,8 +865,6 @@ struct txf_desc {
 #define dmi_addr    addr
 #define LUXOR__SCHEDULE_PREP(napi, dev) napi_schedule_prep(napi)
 #define LUXOR__SCHEDULE(napi, dev)  __napi_schedule(napi)
-#define LUXOR__POLL_ENABLE(dev)
-#define LUXOR__POLL_DISABLE(dev)
 #define LUXOR__NAPI_ENABLE(napi)    napi_enable(napi)
 #define LUXOR__NAPI_DISABLE(napi)   napi_disable(napi)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)

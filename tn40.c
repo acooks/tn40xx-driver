@@ -1167,7 +1167,6 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 	bdx_link_changed(priv);
 	bdx_enable_interrupts(priv);
-	LUXOR__POLL_ENABLE(priv->ndev);
 	priv->state &= ~BDX_STATE_HW_STOPPED;
 
 	return 0;
@@ -1180,7 +1179,6 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 	if ((priv->state & BDX_STATE_HW_STOPPED) == 0) {
 		priv->state |= BDX_STATE_HW_STOPPED;
 		bdx_disable_interrupts(priv);
-		LUXOR__POLL_DISABLE(priv->ndev);
 		netif_carrier_off(priv->ndev);
 		netif_stop_queue(priv->ndev);
 	}
