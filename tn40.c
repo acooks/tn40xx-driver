@@ -1362,14 +1362,11 @@ static void bdx_stop(struct bdx_priv *priv)
  **/
 static int bdx_close(struct net_device *ndev)
 {
-	struct bdx_priv *priv;
-
-	priv = netdev_priv(ndev);
+	struct bdx_priv *priv = netdev_priv(ndev);
 	bdx_stop(priv);
-	LUXOR__NAPI_DISABLE(&priv->napi);
+	napi_disable(&priv->napi);
 	priv->state &= ~BDX_STATE_OPEN;
 	return 0;
-
 }
 
 /**
@@ -1397,7 +1394,7 @@ static int bdx_open(struct net_device *ndev)
 		netif_stop_queue(priv->ndev);
 	}
 	if ((rc = bdx_start(priv, NO_FW_LOAD)) == 0) {
-		LUXOR__NAPI_ENABLE(&priv->napi);
+		napi_enable(&priv->napi);
 	} else {
 		bdx_close(ndev);
 	}
