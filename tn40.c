@@ -3067,7 +3067,7 @@ static void bdx_tx_free_skbs(struct bdx_priv *priv)
 	struct txdb *db = &priv->txdb;
 
 	while (db->rptr != db->wptr) {
-		if (likely(db->rptr->len))
+		if (likely(db->rptr->len > 0))
 			dma_unmap_page(&priv->pdev->dev, db->rptr->addr.dma,
 				       db->rptr->len, DMA_TO_DEVICE);
 		else
