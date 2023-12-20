@@ -1147,16 +1147,15 @@ static int bdx_hw_start(struct bdx_priv *priv)
 	WRITE_REG(priv, regMAX_FRAME_A,
 		  priv->rxf_fifo0.m.pktsz & MAX_FRAME_AB_VAL);
 
-	netdev_dbg(priv->ndev, "RDINTCM =%08x\n", priv->rdintcm);	/*NOTE: test script uses this */
+	netdev_dbg(priv->ndev, "RDINTCM =%08x\n", priv->rdintcm);
 	WRITE_REG(priv, regRDINTCM0, priv->rdintcm);
 	WRITE_REG(priv, regRDINTCM2, 0);
 
-	netdev_dbg(priv->ndev, "TDINTCM =%08x\n", priv->tdintcm);	/*NOTE: test script uses this */
+	netdev_dbg(priv->ndev, "TDINTCM =%08x\n", priv->tdintcm);
 	WRITE_REG(priv, regTDINTCM0, priv->tdintcm);	/* old val = 0x300064 */
 
-	/* Enable timer interrupt once in 2 secs. */
-
 	bdx_restore_mac(priv->ndev, priv);
+
 	/* Pause frame */
 	WRITE_REG(priv, 0x12E0, 0x28);
 	WRITE_REG(priv, regPAUSE_QUANT, 0xFFFF);
