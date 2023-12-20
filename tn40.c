@@ -1286,14 +1286,6 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 
 }
 
-/* bdx_reset - Perform the right type of reset depending on hw type */
-static int bdx_reset(struct bdx_priv *priv)
-{
-
-	return bdx_hw_reset(priv);
-
-}
-
 static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 {
 	int rc = 0;
@@ -3604,7 +3596,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "register_netdev failed\n");
 		goto err_out_free;
 	}
-	bdx_reset(priv);
+	bdx_hw_reset(priv);
 
 	/*Set GPIO[9:0] to output 0 */
 
@@ -4214,7 +4206,7 @@ static int bdx_resume(struct device *dev)
 				   "bdx_resume() failed to load PHY");
 			break;
 		}
-		if (bdx_reset(priv) != 0) {
+		if (bdx_hw_reset(priv) != 0) {
 			netdev_err(priv->ndev,
 				   "bdx_resume() bdx_reset failed\n");
 			break;
