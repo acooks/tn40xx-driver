@@ -2281,96 +2281,62 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 
 }
 
-static inline u16 tcpCheckSum(u16 *buf, u16 len, u16 *saddr, u16 *daddr,
-			      u16 proto)
-{
-	u32 sum;
-	u16 j = len;
-
-	sum = 0;
-	while (j > 1) {
-		sum += *buf++;
-		if (sum & 0x80000000) {
-			sum = (sum & 0xFFFF) + (sum >> 16);
-		}
-		j -= 2;
-	}
-	if (j & 1) {
-		sum += *((u8 *) buf);
-	}
-	/* Add the tcp pseudo-header */
-	sum += *(saddr++);
-	sum += *saddr;
-	sum += *(daddr++);
-	sum += *daddr;
-	sum += __constant_htons(proto);
-	sum += __constant_htons(len);
-	/* Fold 32-bit sum to 16 bits */
-	while (sum >> 16) {
-		sum = (sum & 0xFFFF) + (sum >> 16);
-	}
-	/* One's complement of sum */
-
-	return ((u16) (sum));
-
-}
-
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 				int off, int len)
 {
 	skb_add_rx_frag(skb, 0, page, off, len, SKB_TRUESIZE(len));
 }
 
-#define PKT_ERR_LEN		(70)
+#define PKT_ERR_LEN	(70)
 
-static int bdx_rx_error(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
+/* Check for hardware's false error indications of TCP/UDP transport layer
+ * header checksums */
+static int is_csum_err(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
 {
 	struct ethhdr *eth = (struct ethhdr *)pkt;
 	struct iphdr *iph =
 	    (struct iphdr *)(pkt + sizeof(struct ethhdr) +
 			     ((eth->h_proto ==
 			       __constant_htons(ETH_P_8021Q)) ? VLAN_HLEN : 0));
-	int rVal = 1;
+	int transport_proto;
+	u16 *l4hdr = (void *)iph + sizeof(struct iphdr);
+	struct udphdr *udp = (struct udphdr *)l4hdr;
+	__sum16 csum;
 
-	if (rxd_err == 0x8) {	/* UDP checksum error */
-		struct udphdr *udp =
-		    (struct udphdr *)((u8 *) iph + sizeof(struct iphdr));
-		if (udp->check == 0) {
-			netdev_dbg(priv->ndev, "false rxd_err = 0x%x\n",
-				   rxd_err);
-			rVal = 0;	/* Work around H/W false error indication */
-		} else if (len < PKT_ERR_LEN) {
-			u16 udpSum;
-			udpSum =
-			    tcpCheckSum((u16 *) udp,
-					htons(iph->tot_len) -
-					(iph->ihl * sizeof(u32)),
-					(u16 *) & iph->saddr,
-					(u16 *) & iph->daddr, IPPROTO_UDP);
-			if (udpSum == 0xFFFF) {
-				netdev_dbg(priv->ndev,
-					   "false rxd_err = 0x%x\n", rxd_err);
-				rVal = 0;	/* Work around H/W false error indication */
-			}
-		}
-	} else if ((rxd_err == 0x10) && (len < PKT_ERR_LEN)) {	/* TCP checksum error */
-		u16 tcpSum;
-		struct tcphdr *tcp =
-		    (struct tcphdr *)((u8 *) iph + sizeof(struct iphdr));
-		tcpSum =
-		    tcpCheckSum((u16 *) tcp,
-				htons(iph->tot_len) - (iph->ihl * sizeof(u32)),
-				(u16 *) & iph->saddr, (u16 *) & iph->daddr,
-				IPPROTO_TCP);
-		if (tcpSum == 0xFFFF) {
-			netdev_dbg(priv->ndev, "false rxd_err = 0x%x\n",
-				   rxd_err);
-			rVal = 0;	/* Work around H/W false error indication */
-		}
+	if (IS_FCS_ERR(rxd_err))
+		return 0;	/* Frame check sequence error, not checksum */
+
+	if (rxd_err == RXD_ERR_UDP_CSUM && udp->check == 0) {
+		netdev_warn(priv->ndev, "false rxd_err = 0x%x\n", rxd_err);
+		return 0;
 	}
 
-	return rVal;
+	if (len >= PKT_ERR_LEN)
+		return 1;
 
+	if (rxd_err == RXD_ERR_UDP_CSUM)
+		transport_proto = IPPROTO_UDP;
+	else if (rxd_err == RXD_ERR_TCP_CSUM)
+		transport_proto = IPPROTO_TCP;
+	else {
+		netdev_warn(priv->ndev, "unknown rxd_error: 0x%x", rxd_err);
+		return 1;
+	}
+
+	/* When is this needed anyway? How do I test it? */
+	csum =
+	    csum_tcpudp_magic(iph->saddr, iph->daddr,
+			      iph->tot_len - sizeof(struct iphdr),
+			      transport_proto, 0);
+	netdev_info(priv->ndev, "csum: 0x%x", csum);
+
+	/* Work around H/W false error indication */
+	if (csum == 0xFFFF) {
+		netdev_warn(priv->ndev, "false rxd_err = 0x%x\n", rxd_err);
+		return 0;
+	}
+
+	return 1;
 }
 
 /* bdx_rx_receive - Receives full packet from RXD fifo and pass them to the OS.
@@ -2384,9 +2350,6 @@ static int bdx_rx_error(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
  * @priv - NIC's private structure
  * @f    - RXF fifo that needs skbs
  */
-
-/* TBD: replace memcpy func call by explicit inline asm */
-
 static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 {
 	struct sk_buff *skb;
@@ -2463,25 +2426,17 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 
 		len = CPU_CHIP_SWAP16(rxdd->len);
 		rxd_vlan = CPU_CHIP_SWAP16(rxdd->rxd_vlan);
+
 		print_rxdd(rxdd, rxd_val1, len, rxd_vlan);
 		/* CHECK FOR ERRORS */
 		if (unlikely(rxd_err = GET_RXD_ERR(rxd_val1))) {
-			int bErr = 1;
+			pkt = ((char *)page_address(bdx_page->page) + dm->off);
 
-			if ((!(rxd_err & 0x4)) &&	/* NOT CRC error */
-			    (((rxd_err == 0x8) && (pkt_id == 2)) ||	/* UDP checksum error */
-			     ((rxd_err == 0x10) && (len < PKT_ERR_LEN) && (pkt_id == 1))	/* TCP checksum error */
-			    )
-			    ) {
-				pkt =
-				    ((char *)page_address(bdx_page->page) +
-				     dm->off);
-				bErr = bdx_rx_error(priv, pkt, rxd_err, len);
-			}
-			if (bErr) {
+			netdev_err(priv->ndev, "rxd_err = 0x%x\n", rxd_err);
 
-				netdev_err(priv->ndev, "rxd_err = 0x%x\n",
-					   rxd_err);
+			if (IS_FCS_ERR(rxd_err)
+			    || is_csum_err(priv, pkt, rxd_err, len)) {
+
 				priv->net_stats.rx_errors++;
 				bdx_recycle_skb(priv, rxdd);
 				continue;
@@ -3860,8 +3815,7 @@ static inline int bdx_tx_fifo_size_to_packets(int tx_size)
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 static void
-bdx_get_ringparam(struct net_device *netdev,
-		  struct ethtool_ringparam *ring)
+bdx_get_ringparam(struct net_device *netdev, struct ethtool_ringparam *ring)
 #else
 static void
 bdx_get_ringparam(struct net_device *netdev,
@@ -3887,8 +3841,7 @@ bdx_get_ringparam(struct net_device *netdev,
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 static int
-bdx_set_ringparam(struct net_device *netdev,
-		  struct ethtool_ringparam *ring)
+bdx_set_ringparam(struct net_device *netdev, struct ethtool_ringparam *ring)
 #else
 static int
 bdx_set_ringparam(struct net_device *netdev,

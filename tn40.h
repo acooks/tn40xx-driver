@@ -537,6 +537,15 @@ struct rxf_desc {
 #define GET_RSS_TYPE(x)     GET_BITS_SHIFT((x), 8, 8)
 #define GET_RSS_TCPU(x)     GET_BITS_SHIFT((x), 8, 16)
 
+/* GET_RXD_ERR(x) error types: */
+#define IS_FCS_ERR(x)  ((x) & 0x4)	/* Frame Check Sequence Error */
+#define RXD_ERR_UDP_CSUM    0x8
+#define RXD_ERR_TCP_CSUM    0x10
+
+/* GET_RXD_PKT_ID(x) can return these known values: */
+#define PKT_ID_TCP 1
+#define PKT_ID_UDP 2
+
 struct rxd_desc {
 	u32 rxd_val1;
 	u16 len;
