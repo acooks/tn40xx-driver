@@ -891,18 +891,10 @@ struct txf_desc {
 #endif
 
 #if defined(NETIF_F_GRO)
-#define LUXOR__VLAN_RECEIVE(napi, grp, vlan_tci, skb) \
-    vlan_gro_receive(napi, grp, vlan_tci, skb)
-#define LUXOR__RECEIVE(napi, skb)  \
-    napi_gro_receive(napi, skb)
 #define IS_GRO(ndev)            ((ndev->features & NETIF_F_GRO) != 0)
 #else
 #define NETIF_F_GRO         0
-#define LUXOR__VLAN_RECEIVE(napi, grp, vlan_tci, skb)   \
-    vlan_hwaccel_receive_skb(skb, grp, vlan_tci)
 
-#define LUXOR__RECEIVE(napi, skb) \
-    netif_receive_skb(skb)
 #define IS_GRO(ndev)            0
 #endif
 
