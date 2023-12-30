@@ -940,8 +940,8 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 		bdx_isr_extra(priv, isr);
 
 	if (isr & (IR_RX_DESC_0 | IR_TX_FREE_0 | IR_TMR1)) {
-		if (likely(LUXOR__SCHEDULE_PREP(&priv->napi, ndev))) {
-			LUXOR__SCHEDULE(&priv->napi, ndev);
+		if (likely(napi_schedule_prep(&priv->napi))) {
+			__napi_schedule(&priv->napi);
 			return IRQ_HANDLED;
 		} else {
 			/*
@@ -1305,7 +1305,7 @@ static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 			}
 			bdx_rx_alloc_buffers(priv);
 			if (request_irq
-			    (priv->pdev->irq, &bdx_isr_napi, BDX_IRQ_TYPE,
+			    (priv->pdev->irq, &bdx_isr_napi, IRQF_SHARED,
 			     priv->ndev->name, priv->ndev)) {
 				break;
 			}

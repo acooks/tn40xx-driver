@@ -262,7 +262,6 @@ struct bdx_device_descr {
 #define BDX_MIN_TX_LEVEL   256
 #define BDX_NO_UPD_PACKETS 40
 #define BDX_MAX_MTU		   (1 << 14)
-#define BDX_IRQ_TYPE    IRQF_SHARED
 struct pci_nic {
 	int port_num;
 	void __iomem *regs;
@@ -872,8 +871,7 @@ struct txf_desc {
 #endif
 #define dev_mc_list     netdev_hw_addr
 #define dmi_addr    addr
-#define LUXOR__SCHEDULE_PREP(napi, dev) napi_schedule_prep(napi)
-#define LUXOR__SCHEDULE(napi, dev)  __napi_schedule(napi)
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 #define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
                   netif_napi_add_weight(dev, napi, poll, weight)
