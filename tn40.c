@@ -2155,7 +2155,7 @@ static void bdx_rx_free(struct bdx_priv *priv)
 
 /* TBD: Do not update WPTR if no desc were written */
 
-static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
+static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 {
 	int dno, delta, idx;
 	register struct rxf_desc *rxfd;
@@ -2169,8 +2169,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	int page_off = -1;
 	u64 dma = 0ULL;
 
-	netdev_dbg(priv->ndev, "_bdx_rx_alloc_buffers is at %p\n",
-		   _bdx_rx_alloc_buffers);
 	dno = bdx_rxdb_available(db) - 1;
 	page_size = bdx_rx_get_page_size(priv);
 	netdev_dbg(priv->ndev, "dno %d page_size %d buf_size %d\n", dno,
@@ -2246,12 +2244,6 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->m.reg_WPTR=0x%x\n",
 		   f->m.reg_WPTR, READ_REG(priv, f->m.reg_WPTR));
 	dbg_printFifo(&priv->rxf_fifo0.m, (char *)"RXF");
-
-}
-
-static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
-{
-	_bdx_rx_alloc_buffers(priv);
 
 }
 
