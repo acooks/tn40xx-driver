@@ -2474,7 +2474,6 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 	}
 
 	/* CLEANUP */
-	LUXOR__GRO_FLUSH(&priv->napi);
 	priv->net_stats.rx_packets += done;
 	/* FIXME: Do something to minimize pci accesses    */
 	WRITE_REG(priv, f->m.reg_RPTR, f->m.rptr & TXF_WPTR_WR_PTR);

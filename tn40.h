@@ -895,7 +895,6 @@ struct txf_desc {
     vlan_gro_receive(napi, grp, vlan_tci, skb)
 #define LUXOR__RECEIVE(napi, skb)  \
     napi_gro_receive(napi, skb)
-#define LUXOR__GRO_FLUSH(napi)
 #define IS_GRO(ndev)            ((ndev->features & NETIF_F_GRO) != 0)
 #else
 #define NETIF_F_GRO         0
@@ -904,7 +903,6 @@ struct txf_desc {
 
 #define LUXOR__RECEIVE(napi, skb) \
     netif_receive_skb(skb)
-#define LUXOR__GRO_FLUSH(napi)
 #define IS_GRO(ndev)            0
 #endif
 
