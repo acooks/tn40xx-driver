@@ -3635,8 +3635,8 @@ static const char
 	"OutOctects",		/* 0x73F0 */
 };
 
-int bdx_get_link_ksettings(struct net_device *netdev,
-			   struct ethtool_link_ksettings *cmd)
+static int bdx_get_link_ksettings(struct net_device *netdev,
+				  struct ethtool_link_ksettings *cmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
@@ -3654,8 +3654,8 @@ int bdx_get_link_ksettings(struct net_device *netdev,
 
 }
 
-int bdx_set_link_ksettings(struct net_device *netdev,
-			   const struct ethtool_link_ksettings *cmd)
+static int bdx_set_link_ksettings(struct net_device *netdev,
+				  const struct ethtool_link_ksettings *cmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
