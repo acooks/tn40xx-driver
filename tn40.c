@@ -2818,11 +2818,6 @@ static inline int bdx_tx_space(struct bdx_priv *priv)
 	return (fsize);
 }
 
-void bdx_tx_timeout(struct net_device *ndev)
-{
-	netdev_dbg(ndev, "TX timeout\n");
-}
-
 /* bdx_tx_transmit - Send a packet to the NIC.
  *
  * @skb - Packet to send
