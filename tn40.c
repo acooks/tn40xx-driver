@@ -1213,14 +1213,13 @@ static int bdx_hw_reset(struct bdx_priv *priv)
 {
 	u32 val, i;
 
-	if (priv->port == 0) {
-		/* Reset sequences: read, write 1, read, write 0 */
-		val = READ_REG(priv, regCLKPLL);
-		WRITE_REG(priv, regCLKPLL, (val | CLKPLL_SFTRST) + 0x8);
-		udelay(50);
-		val = READ_REG(priv, regCLKPLL);
-		WRITE_REG(priv, regCLKPLL, val & ~CLKPLL_SFTRST);
-	}
+	/* Reset sequences: read, write 1, read, write 0 */
+	val = READ_REG(priv, regCLKPLL);
+	WRITE_REG(priv, regCLKPLL, (val | CLKPLL_SFTRST) + 0x8);
+	udelay(50);
+	val = READ_REG(priv, regCLKPLL);
+	WRITE_REG(priv, regCLKPLL, val & ~CLKPLL_SFTRST);
+
 	/* Check that the PLLs are locked and reset ended */
 	for (i = 0; i < 70; i++, mdelay(10)) {
 		if ((READ_REG(priv, regCLKPLL) & CLKPLL_LKD) == CLKPLL_LKD) {
@@ -3478,11 +3477,9 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	memset(priv, 0, sizeof(struct bdx_priv));
 	priv->drv_name = BDX_DRV_NAME;
 	priv->pBdxRegs = nic->regs;
-	priv->port = 0;
 	priv->pdev = pdev;
 	priv->ndev = ndev;
 	priv->nic = nic;
-	priv->msg_enable = BDX_DEF_MSG_ENABLE;
 	priv->deviceId = pdev->device;
 	netif_napi_add(ndev, &priv->napi, bdx_poll);
 

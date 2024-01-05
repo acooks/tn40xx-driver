@@ -434,10 +434,8 @@ struct bdx_priv {
 	int tx_noupd;
 
 	/* Rarely used */
-	u8 port;
 	u8 phy_mdio_port;
 	enum PHY_TYPE phy_type;
-	u32 msg_enable;
 	int stats_flag;
 	struct bdx_stats hw_stats;
 	struct net_device_stats net_stats;
@@ -451,7 +449,6 @@ struct bdx_priv {
 	u32 tdintcm;
 	u16 id;
 	u16 count;
-	struct timer_list blink_timer;
 	u32 isr_mask;
 	int link_speed;		/* 0- no link or SPEED_100 SPEED_1000 SPEED_10000 */
 	u32 link_loop_cnt;
@@ -473,7 +470,6 @@ struct bdx_priv {
 	 __ETHTOOL_DECLARE_LINK_MODE_MASK(link_advertising);
 #endif
 	u32 eee_enabled;
-	struct bdx_cMem *cMem;
 	struct bdx_rx_page_table rx_page_table;
 #ifdef TN40_THUNDERBOLT
 	int bDeviceRemoved;
