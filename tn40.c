@@ -3484,7 +3484,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	priv->nic = nic;
 	priv->msg_enable = BDX_DEF_MSG_ENABLE;
 	priv->deviceId = pdev->device;
-	LUXOR__NAPI_ADD(ndev, &priv->napi, bdx_poll, 64);
+	netif_napi_add(ndev, &priv->napi, bdx_poll);
 
 	if ((readl(nic->regs + FPGA_VER) & 0xFFF) == 308) {
 		dev_dbg(&ndev->dev, "HW statistics not supported\n");

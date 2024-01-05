@@ -849,16 +849,9 @@ struct txf_desc {
 #define netdev_for_each_mc_addr(mclist, dev) \
     for (mclist = dev->mc_list; mclist; mclist = mclist->next)
 #endif
+
 #define dev_mc_list     netdev_hw_addr
 #define dmi_addr    addr
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
-#define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
-                  netif_napi_add_weight(dev, napi, poll, weight)
-#else
-#define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
-                  netif_napi_add(dev, napi, poll, weight)
-#endif
 
 /*
  * Note: 32 bit  kernels use 16 bits for page_offset. Do not increase
