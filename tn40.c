@@ -1792,12 +1792,6 @@ static void dbg_printRxPageTable(struct bdx_priv *priv)
 
 }
 
-static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
-{
-	return dm->bdx_page;
-
-}
-
 static int bdx_rx_set_page_size(struct bdx_priv *priv, int buf_size,
 				int *page_used)
 {
@@ -2114,7 +2108,7 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 						 f->pktsz, DMA_FROM_DEVICE);
 				dev_kfree_skb(dm->skb);
 			} else {
-				struct bdx_page *bdx_page = bdx_rx_page(dm);
+				struct bdx_page *bdx_page = dm->bdx_page;
 				if (bdx_page) {
 					bdx_rx_put_page(priv, dm);
 				}
@@ -2417,7 +2411,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct fifo *f, int budget)
 		}
 		dm = bdx_rxdb_addr_elem(db, rxdd->va_lo);
 		prefetch(dm);
-		bdx_page = bdx_rx_page(dm);
+		bdx_page = dm->bdx_page;
 
 		len = CPU_CHIP_SWAP16(rxdd->len);
 		rxd_vlan = CPU_CHIP_SWAP16(rxdd->rxd_vlan);
