@@ -1631,7 +1631,7 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		stats_vector[i] = bdx_read_l2stat(priv, addr);
 		addr += 0x10;
 	}
-	BDX_ASSERT(addr != 0x72C0);
+	WARN_ON(addr != 0x72C0);
 
 	/* 0x72C0-0x72E0 RSRV */
 	addr = 0x72F0;
@@ -1639,7 +1639,7 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		stats_vector[i] = bdx_read_l2stat(priv, addr);
 		addr += 0x10;
 	}
-	BDX_ASSERT(addr != 0x7330);
+	WARN_ON(addr != 0x7330);
 
 	/* 0x7330-0x7360 RSRV */
 	addr = 0x7370;
@@ -1647,7 +1647,7 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		stats_vector[i] = bdx_read_l2stat(priv, addr);
 		addr += 0x10;
 	}
-	BDX_ASSERT(addr != 0x73A0);
+	WARN_ON(addr != 0x73A0);
 
 	/* 0x73A0-0x73B0 RSRV */
 	addr = 0x73C0;
@@ -1656,8 +1656,8 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		addr += 0x10;
 	}
 
-	BDX_ASSERT(addr != 0x7400);
-	BDX_ASSERT((sizeof(struct bdx_stats) / sizeof(u64)) != i);
+	WARN_ON(addr != 0x7400);
+	WARN_ON((sizeof(struct bdx_stats) / sizeof(u64)) != i);
 }
 
 static struct net_device_stats *bdx_get_stats(struct net_device *ndev)
@@ -1715,14 +1715,14 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 
 static inline int bdx_rxdb_alloc_elem(struct rxdb *db)
 {
-	BDX_ASSERT(db->top <= 0);
+	WARN_ON(db->top <= 0);
 	TN40_ASSERT((db->top > 0), "top %d\n", db->top);
 	return db->stack[--(db->top)];
 }
 
 static inline void *bdx_rxdb_addr_elem(struct rxdb *db, unsigned n)
 {
-	BDX_ASSERT((n >= (unsigned)db->nelem));
+	WARN_ON((n >= (unsigned)db->nelem));
 	TN40_ASSERT((n < (unsigned)db->nelem), "n %d nelem %d\n", n, db->nelem);
 	return db->elems + n;
 }
@@ -1734,7 +1734,7 @@ static inline int bdx_rxdb_available(struct rxdb *db)
 
 static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 {
-	BDX_ASSERT((n >= (unsigned)db->nelem));
+	WARN_ON((n >= (unsigned)db->nelem));
 	db->stack[(db->top)++] = n;
 }
 
@@ -2392,7 +2392,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct fifo *f, int budget)
 		rxd_val1 = CPU_CHIP_SWAP32(rxdd->rxd_val1);
 		tmp_len = GET_RXD_BC(rxd_val1) << 3;
 		pkt_id = GET_RXD_PKT_ID(rxd_val1);
-		BDX_ASSERT(tmp_len <= 0);
+		WARN_ON(tmp_len <= 0);
 		size -= tmp_len;
 		/* CHECK FOR A PARTIALLY ARRIVED DESCRIPTOR */
 		if (size < 0) {
@@ -2572,11 +2572,11 @@ static inline int bdx_tx_db_size(struct txdb *db)
  */
 static inline void __bdx_tx_db_ptr_next(struct txdb *db, struct tx_map **pptr)
 {
-	BDX_ASSERT(db == NULL || pptr == NULL);	/* sanity */
-	BDX_ASSERT(*pptr != db->rptr &&	/* expect either read */
-		   *pptr != db->wptr);	/* or write pointer */
-	BDX_ASSERT(*pptr < db->start ||	/* pointer has to be */
-		   *pptr >= db->end);	/* in range */
+	WARN_ON(db == NULL || pptr == NULL);	/* sanity */
+	WARN_ON(*pptr != db->rptr &&	/* expect either read */
+		*pptr != db->wptr);	/* or write pointer */
+	WARN_ON(*pptr < db->start ||	/* pointer has to be */
+		*pptr >= db->end);	/* in range */
 
 	++*pptr;
 	if (unlikely(*pptr == db->end))
@@ -2589,7 +2589,7 @@ static inline void __bdx_tx_db_ptr_next(struct txdb *db, struct tx_map **pptr)
  */
 static inline void bdx_tx_db_inc_rptr(struct txdb *db)
 {
-	BDX_ASSERT(db->rptr == db->wptr);	/* can't read from empty db */
+	WARN_ON(db->rptr == db->wptr);	/* can't read from empty db */
 	__bdx_tx_db_ptr_next(db, &db->rptr);
 }
 
@@ -2600,8 +2600,8 @@ static inline void bdx_tx_db_inc_rptr(struct txdb *db)
 static inline void bdx_tx_db_inc_wptr(struct txdb *db)
 {
 	__bdx_tx_db_ptr_next(db, &db->wptr);
-	BDX_ASSERT(db->rptr == db->wptr);	/* we can not get empty db as
-						   a result of write */
+	WARN_ON(db->rptr == db->wptr);	/* we can not get empty db as
+					   a result of write */
 }
 
 /* bdx_tx_db_init - Create and initialize txdb.
@@ -2639,7 +2639,7 @@ static int bdx_tx_db_init(struct txdb *d, int sz_type)
  */
 static void bdx_tx_db_close(struct txdb *d)
 {
-	BDX_ASSERT(d == NULL);
+	WARN_ON(d == NULL);
 
 	if (d->start) {
 		vfree(d->start);
@@ -2854,7 +2854,7 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	}
 
 	/* Build tx descriptor */
-	BDX_ASSERT(f->wptr >= f->memsz);	/* started with valid wptr */
+	WARN_ON(f->wptr >= f->memsz);	/* started with valid wptr */
 	txdd = (struct txd_desc *)(f->va + f->wptr);
 	if (bdx_tx_map_skb(priv, skb, txdd, &nr_frags, &pkt_len) != 0) {
 		dev_kfree_skb_any(skb);
@@ -2900,13 +2900,17 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	if (unlikely(len >= 0)) {
 		f->wptr = len;
 		if (len > 0) {
-			BDX_ASSERT(len > f->memsz);
+			WARN_ON(len > f->memsz);
 			memcpy(f->va, f->va + f->memsz, len);
 		}
 	}
-	BDX_ASSERT(f->wptr >= f->memsz);	/* finished with valid wptr */
+	WARN_ON(f->wptr >= f->memsz);	/* finished with valid wptr */
 	priv->tx_level -= txd_sizes[nr_frags].bytes;
-	BDX_ASSERT(priv->tx_level <= 0 || priv->tx_level > BDX_MAX_TX_LEVEL);
+	WARN_ON(priv->tx_level <= 0);
+
+	/* FIXME: this triggers all the time. */
+	WARN_ON_ONCE(priv->tx_level > BDX_MAX_TX_LEVEL);
+
 #if (defined(TN40_PTP) && defined(ETHTOOL_GET_TS_INFO))
 	skb_tx_timestamp(skb);
 #endif
@@ -2949,7 +2953,7 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	int tx_level = 0;
 
 	f->wptr = READ_REG(priv, f->reg_WPTR) & TXF_WPTR_MASK;
-	BDX_ASSERT(f->rptr >= f->memsz);	/* Started with valid rptr */
+	WARN_ON(f->rptr >= f->memsz);	/* Started with valid rptr */
 	netif_tx_lock(priv->ndev);
 
 	while (f->wptr != f->rptr) {
@@ -2957,9 +2961,9 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 		f->rptr &= f->size_mask;
 		/* Unmap all fragments */
 		/* First has to come tx_maps containing DMA */
-		BDX_ASSERT(db->rptr->len == 0);
+		WARN_ON(db->rptr->len == 0);
 		do {
-			BDX_ASSERT(db->rptr->addr.dma == 0);
+			WARN_ON(db->rptr->addr.dma == 0);
 			netdev_dbg(priv->ndev,
 				   "dma_unmap_page 0x%llx len %d\n",
 				   db->rptr->addr.dma, db->rptr->len);
@@ -2977,7 +2981,7 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	}
 
 	/* Let the HW know which TXF descriptors were cleaned */
-	BDX_ASSERT((f->wptr & TXF_WPTR_WR_PTR) >= f->memsz);
+	WARN_ON((f->wptr & TXF_WPTR_WR_PTR) >= f->memsz);
 	WRITE_REG(priv, f->reg_RPTR, f->rptr & TXF_WPTR_WR_PTR);
 
 	/*
@@ -2985,7 +2989,11 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	 * we resume the transmission and use tx_lock to synchronize with xmit.
 	 */
 	priv->tx_level += tx_level;
-	BDX_ASSERT(priv->tx_level <= 0 || priv->tx_level > BDX_MAX_TX_LEVEL);
+	WARN_ON(priv->tx_level <= 0);
+
+	/* FIXME: this triggers all the time. */
+	WARN_ON_ONCE(priv->tx_level > BDX_MAX_TX_LEVEL);
+
 	if (priv->tx_noupd) {
 		priv->tx_noupd = 0;
 		WRITE_REG(priv, priv->txd_fifo0.reg_WPTR,
@@ -3905,8 +3913,8 @@ static int bdx_get_sset_count(struct net_device *netdev, int stringset)
 
 	switch (stringset) {
 	case ETH_SS_STATS:
-		BDX_ASSERT(ARRAY_SIZE(bdx_stat_names) !=
-			   sizeof(struct bdx_stats) / sizeof(u64));
+		WARN_ON(ARRAY_SIZE(bdx_stat_names) !=
+			sizeof(struct bdx_stats) / sizeof(u64));
 		return ((priv->stats_flag) ? ARRAY_SIZE(bdx_stat_names) : 0);
 	default:
 		return -EINVAL;

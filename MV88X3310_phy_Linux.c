@@ -51,7 +51,6 @@ int MV88X3310_get_link_ksettings(struct net_device *netdev,
 	return 0;
 }
 
-
 int MV88X3310_set_link_ksettings(struct net_device *netdev,
 				 const struct ethtool_link_ksettings *cmd)
 {

@@ -68,9 +68,6 @@
 #endif
 /* Debugging Macros */
 
-/*#define BDX_ASSERT(x) BUG_ON(x) */
-
-#define BDX_ASSERT(x)
 #define TN40_ASSERT(x, fmt, args...) if (!(x)) printk(KERN_ERR  BDX_DRV_NAME" ASSERT : ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
 
 #define TN40_DEBUG
@@ -267,7 +264,6 @@ struct pci_nic {
 	void __iomem *regs;
 	struct bdx_priv *priv;
 };
-
 
 #define PCK_TH_MULT   128
 #define INT_COAL_MULT 2
