@@ -1812,13 +1812,6 @@ static int bdx_rx_set_page_size(struct bdx_priv *priv, int buf_size,
 	*page_used = page_size - page_unused;
 
 	return page_size;
-
-}
-
-static int bdx_rx_get_page_size(struct bdx_priv *priv)
-{
-	return priv->rx_page_table.page_size;
-
 }
 
 static int bdx_rx_alloc_page(struct bdx_priv *priv, struct bdx_page *bdx_page)
@@ -2156,17 +2149,16 @@ static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 	int dno, delta, idx;
 	register struct rxf_desc *rxfd;
 	register struct rx_map *dm;
-	int page_size;
 	struct rxdb *db = priv->rxdb0;
 	struct fifo *f = &priv->rxf_fifo0;
 	int nPages = 0;
 	struct bdx_page *bdx_page = NULL;
 	int buf_size = priv->rx_page_table.buf_size;
+	int page_size = priv->rx_page_table.page_size;
 	int page_off = -1;
 	u64 dma = 0ULL;
 
 	dno = bdx_rxdb_available(db) - 1;
-	page_size = bdx_rx_get_page_size(priv);
 	netdev_dbg(priv->ndev, "dno %d page_size %d buf_size %d\n", dno,
 		   page_size, priv->rx_page_table.buf_size);
 	while (dno > 0) {
