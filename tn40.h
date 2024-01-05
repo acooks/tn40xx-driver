@@ -258,7 +258,7 @@ struct bdx_device_descr {
 #define LUXOR_MAX_PORT     2
 #define BDX_MAX_RX_DONE    150
 #define BDX_TXF_DESC_SZ    16
-#define BDX_MAX_TX_LEVEL   (priv->txd_fifo0.m.memsz - 16)
+#define BDX_MAX_TX_LEVEL   (priv->txd_fifo0.memsz - 16)
 #define BDX_MIN_TX_LEVEL   256
 #define BDX_NO_UPD_PACKETS 40
 #define BDX_MAX_MTU		   (1 << 14)
@@ -298,22 +298,6 @@ struct fifo {
 	u16 size_mask;
 	u16 pktsz;		/* Skb packet size to allocate */
 	u16 rcvno;		/* Number of buffers that come from this RXF */
-};
-
-struct txf_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos  */
-};
-
-struct txd_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos */
-};
-
-struct rxf_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos */
-};
-
-struct rxd_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos */
 };
 
 struct bdx_page {
@@ -440,14 +424,14 @@ struct bdx_priv {
 	struct net_device *ndev;
 	struct napi_struct napi;
 	/* RX FIFOs: 1 for data (full) descs, and 2 for free descs */
-	struct rxd_fifo rxd_fifo0;
-	struct rxf_fifo rxf_fifo0;
+	struct fifo rxd_fifo0;
+	struct fifo rxf_fifo0;
 	struct rxdb *rxdb0;	/* Rx dbs to store skb pointers */
 	int napi_stop;
 	struct vlan_group *vlgrp;
 	/* Tx FIFOs: 1 for data desc, 1 for empty (acks) desc */
-	struct txd_fifo txd_fifo0;
-	struct txf_fifo txf_fifo0;
+	struct fifo txd_fifo0;
+	struct fifo txf_fifo0;
 	struct txdb txdb;
 	int tx_level;
 	int tx_update_mark;
