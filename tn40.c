@@ -1166,17 +1166,13 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 	bdx_link_changed(priv);
 	bdx_enable_interrupts(priv);
-	priv->state &= ~BDX_STATE_HW_STOPPED;
 
 	return 0;
-
 }
 
 static void bdx_hw_stop(struct bdx_priv *priv)
 {
-
-	if ((priv->state & BDX_STATE_HW_STOPPED) == 0) {
-		priv->state |= BDX_STATE_HW_STOPPED;
+	if (netif_running(priv->ndev)) {
 		bdx_disable_interrupts(priv);
 		netif_carrier_off(priv->ndev);
 		netif_stop_queue(priv->ndev);
@@ -1288,45 +1284,40 @@ static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 {
 	int rc = 0;
 
-	if ((priv->state & BDX_STATE_STARTED) == 0) {
-		priv->state |= BDX_STATE_STARTED;
-		do {
-			rc = -1;
-			if (bdx_tx_init(priv)) {
-				break;
-			}
-			if (bdx_rx_init(priv)) {
-				break;
-			}
-			if (bdx_rx_alloc_pages(priv)) {
-				break;
-			}
-			bdx_rx_alloc_buffers(priv);
-			if (request_irq
-			    (priv->pdev->irq, &bdx_isr_napi, IRQF_SHARED,
-			     priv->ndev->name, priv->ndev)) {
-				break;
-			}
-			if (bLoadFw && bdx_fw_load(priv)) {
-				break;
-			}
-			bdx_init_rss(priv);
-			rc = 0;
-		} while (0);
-	}
-	if (rc == 0) {
-		if (priv->state & BDX_STATE_OPEN) {
-			rc = bdx_hw_start(priv);
+	do {
+		rc = -1;
+		if (bdx_tx_init(priv)) {
+			break;
 		}
-	}
+		if (bdx_rx_init(priv)) {
+			break;
+		}
+		if (bdx_rx_alloc_pages(priv)) {
+			break;
+		}
+		bdx_rx_alloc_buffers(priv);
+		if (request_irq
+		    (priv->pdev->irq, &bdx_isr_napi, IRQF_SHARED,
+		     priv->ndev->name, priv->ndev)) {
+			break;
+		}
+		if (bLoadFw && bdx_fw_load(priv)) {
+			break;
+		}
+		bdx_init_rss(priv);
+		rc = 0;
+	} while (0);
+
+	if (rc == 0)
+		rc = bdx_hw_start(priv);
+
 	return rc;
 
 }
 
 static void bdx_stop(struct bdx_priv *priv)
 {
-	if (priv->state & BDX_STATE_STARTED) {
-		priv->state &= ~BDX_STATE_STARTED;
+	if (netif_running(priv->ndev)) {
 		bdx_hw_stop(priv);
 		free_irq(priv->pdev->irq, priv->ndev);
 		pci_free_irq_vectors(priv->pdev);
@@ -1355,7 +1346,6 @@ static int bdx_close(struct net_device *ndev)
 	struct bdx_priv *priv = netdev_priv(ndev);
 	bdx_stop(priv);
 	napi_disable(&priv->napi);
-	priv->state &= ~BDX_STATE_OPEN;
 	return 0;
 }
 
@@ -1378,7 +1368,6 @@ static int bdx_open(struct net_device *ndev)
 	int rc;
 
 	priv = netdev_priv(ndev);
-	priv->state |= BDX_STATE_OPEN;
 	bdx_sw_reset(priv);
 	if (netif_running(ndev)) {
 		netif_stop_queue(priv->ndev);
@@ -2834,10 +2823,6 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	int nr_frags, len;
 	DBG_OFF;
 
-	if (!(priv->state & BDX_STATE_STARTED)) {
-		return -1;
-	}
-
 	/* Build tx descriptor */
 	WARN_ON(f->wptr >= f->memsz);	/* started with valid wptr */
 	txdd = (struct txd_desc *)(f->va + f->wptr);
@@ -3512,7 +3497,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	/* Initialize the initial coalescing registers. */
 	priv->rdintcm = INT_REG_VAL(0x20, 1, 4, 12);
 	priv->tdintcm = INT_REG_VAL(0x20, 1, 0, 12);
-	priv->state = BDX_STATE_HW_STOPPED;
+
 	/*
 	 * ndev->xmit_lock spinlock is not used.
 	 * Private priv->tx_lock is used for synchronization

@@ -154,13 +154,6 @@ u32 tbReadReg(struct bdx_priv *priv, u32 reg);
 #define MDIO_SPEED_1MHZ 		(1)
 #define MDIO_SPEED_6MHZ			(6)
 
-/* Driver states */
-
-#define	BDX_STATE_NONE			(0x00000000)
-#define	BDX_STATE_HW_STOPPED	(0x00000001)
-#define BDX_STATE_STARTED		(0x00000002)
-#define BDX_STATE_OPEN			(0x00000004)
-
 enum LOAD_FW {
 	NO_FW_LOAD = 0,
 	FW_LOAD,
@@ -460,7 +453,6 @@ struct bdx_priv {
 	char *b0_va;		/* Virtual address of buffer */
 	char *drv_name;		/* device driver name */
 	u32 errmsg_count;
-	u32 state;
 	/* SHORT_PKT_FIX end */
 	u16 deviceId;
 	u16 subsystem_vendor;
