@@ -1652,20 +1652,21 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 	size_t size = sizeof(struct rxdb) + (nelem * sizeof(int)) +
 	    (nelem * sizeof(struct rx_map));
 
-	db = vmalloc(size);
-	if (likely(db != NULL)) {
-		memset(db, 0, size);
-		db->stack = (int *)(db + 1);
-		db->elems = (void *)(db->stack + nelem);
-		db->nelem = nelem;
-		db->top = nelem;
-		for (i = 0; i < nelem; i++) {
-			db->stack[i] = nelem - i - 1;	/* To make the first
-							 * alloc close to db
-							 * struct */
-		}
+	db = vzalloc(size);
+	if (!db)
+		return NULL;
+
+	db->stack = (int *)(db + 1);
+	db->elems = (void *)(db->stack + nelem);
+	db->nelem = nelem;
+	db->top = nelem;
+	for (i = 0; i < nelem; i++) {
+		/* Make the first alloc close to db struct */
+		db->stack[i] = nelem - i - 1;
 	}
-	if ((db->pkt = vmalloc(pktSize)) == NULL) {
+
+	db->pkt = vzalloc(pktSize);
+	if (!db->pkt) {
 		bdx_rxdb_destroy(db);
 		db = NULL;
 	}
