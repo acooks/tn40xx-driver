@@ -1180,7 +1180,7 @@ static void bdx_hw_stop(struct bdx_priv *priv)
 
 }
 
-static int bdx_hw_reset_direct(struct pci_dev *pdev, void __iomem *regs)
+static int bdx_hw_reset(struct pci_dev *pdev, void __iomem *regs)
 {
 	u32 val, i;
 
@@ -1202,34 +1202,6 @@ static int bdx_hw_reset_direct(struct pci_dev *pdev, void __iomem *regs)
 	dev_err(&pdev->dev, "HW reset failed\n");
 
 	return 1;		/* failure */
-
-}
-
-static int bdx_hw_reset(struct bdx_priv *priv)
-{
-	u32 val, i;
-
-	/* Reset sequences: read, write 1, read, write 0 */
-	val = READ_REG(priv, regCLKPLL);
-	WRITE_REG(priv, regCLKPLL, (val | CLKPLL_SFTRST) + 0x8);
-	udelay(50);
-	val = READ_REG(priv, regCLKPLL);
-	WRITE_REG(priv, regCLKPLL, val & ~CLKPLL_SFTRST);
-
-	/* Check that the PLLs are locked and reset ended */
-	for (i = 0; i < 70; i++, mdelay(10)) {
-		if ((READ_REG(priv, regCLKPLL) & CLKPLL_LKD) == CLKPLL_LKD) {
-			udelay(50);
-			/* Do any PCI-E read transaction */
-			READ_REG(priv, regRXD_CFG0_0);
-			return 0;
-
-		}
-	}
-	netdev_err(priv->ndev, "HW reset failed\n");
-
-	return 1;		/* Failure */
-
 }
 
 static int bdx_sw_reset(struct bdx_priv *priv)
@@ -3441,7 +3413,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 
 	nic->port_num = bdx_get_ports_by_id(pdev->vendor, pdev->device);
 	print_hw_id(pdev);
-	bdx_hw_reset_direct(pdev, nic->regs);
+	bdx_hw_reset(pdev, nic->regs);
 
 	nvec = pci_alloc_irq_vectors(pdev, 1, nvec, PCI_IRQ_MSI);
 	if (nvec < 0) {
@@ -3515,7 +3487,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "register_netdev failed\n");
 		goto err_out_free;
 	}
-	bdx_hw_reset(priv);
+	bdx_hw_reset(priv->pdev, priv->nic->regs);
 
 	/*Set GPIO[9:0] to output 0 */
 
@@ -4123,7 +4095,7 @@ static int bdx_resume(struct device *dev)
 				   "bdx_resume() failed to load PHY");
 			break;
 		}
-		if (bdx_hw_reset(priv) != 0) {
+		if (bdx_hw_reset(priv->pdev, priv->nic->regs) != 0) {
 			netdev_err(priv->ndev,
 				   "bdx_resume() bdx_reset failed\n");
 			break;
