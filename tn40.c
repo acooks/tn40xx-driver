@@ -2927,10 +2927,6 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	WARN_ON((f->wptr & TXF_WPTR_WR_PTR) >= f->memsz);
 	WRITE_REG(priv, f->reg_RPTR, f->rptr & TXF_WPTR_WR_PTR);
 
-	/*
-	 * We reclaimed resources, so in case the Q is stopped by xmit callback,
-	 * we resume the transmission and use tx_lock to synchronize with xmit.
-	 */
 	priv->tx_level += tx_level;
 	WARN_ON(priv->tx_level <= 0);
 
@@ -3471,12 +3467,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	priv->rdintcm = INT_REG_VAL(0x20, 1, 4, 12);
 	priv->tdintcm = INT_REG_VAL(0x20, 1, 0, 12);
 
-	/*
-	 * ndev->xmit_lock spinlock is not used.
-	 * Private priv->tx_lock is used for synchronization
-	 * between transmit and TX irq cleanup.  In addition
-	 * set multicast list callback has to use priv->tx_lock.
-	 */
 	ndev->hw_features |= ndev->features;
 
 	if (bdx_read_mac(priv)) {
