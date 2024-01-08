@@ -3326,6 +3326,7 @@ static void __init bdx_init_net_device(struct net_device *ndev,
 	ndev->vlan_features = (NETIF_F_IP_CSUM |
 			       NETIF_F_SG |
 			       NETIF_F_TSO | NETIF_F_GRO | NETIF_F_RXHASH);
+	ndev->hw_features |= ndev->features;
 	ndev->min_mtu = ETH_ZLEN;
 	ndev->max_mtu = BDX_MAX_MTU;
 }
@@ -3425,6 +3426,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	}
 
 	bdx_init_net_device(ndev, pciaddr, regionSize, pdev);
+	bdx_ethtool_ops(ndev);	/* Ethtool interface */
 
 	/************** PRIV ****************/
 	priv = nic->priv = netdev_priv(ndev);
@@ -3454,8 +3456,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		goto err_out_iomap;
 	}
 
-	bdx_ethtool_ops(ndev);	/* Ethtool interface */
-
 	/* Initialize fifo sizes. */
 	priv->txd_size = 3;
 	priv->txf_size = 3;
@@ -3466,8 +3466,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	/* Initialize the initial coalescing registers. */
 	priv->rdintcm = INT_REG_VAL(0x20, 1, 4, 12);
 	priv->tdintcm = INT_REG_VAL(0x20, 1, 0, 12);
-
-	ndev->hw_features |= ndev->features;
 
 	if (bdx_read_mac(priv)) {
 		dev_err(&pdev->dev, "load MAC address failed\n");
