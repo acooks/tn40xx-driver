@@ -51,7 +51,6 @@ int AQR105_get_link_ksettings(struct net_device *netdev,
 	return 0;
 }
 
-
 int AQR105_set_link_ksettings(struct net_device *netdev,
 			      const struct ethtool_link_ksettings *cmd)
 {

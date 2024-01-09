@@ -68,9 +68,6 @@
 #endif
 /* Debugging Macros */
 
-/*#define BDX_ASSERT(x) BUG_ON(x) */
-
-#define BDX_ASSERT(x)
 #define TN40_ASSERT(x, fmt, args...) if (!(x)) printk(KERN_ERR  BDX_DRV_NAME" ASSERT : ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
 
 #define TN40_DEBUG
@@ -97,7 +94,6 @@ extern int g_memLog;
 #define MEMLOG1_ON
 #define MEMLOG_OFF
 #define memLog(args, ...)
-#define memLogInit()
 #define memLogDmesg()
 #define memLogGetLine(x) (0)
 #define memLogPrint()
@@ -157,13 +153,6 @@ u32 tbReadReg(struct bdx_priv *priv, u32 reg);
 
 #define MDIO_SPEED_1MHZ 		(1)
 #define MDIO_SPEED_6MHZ			(6)
-
-/* Driver states */
-
-#define	BDX_STATE_NONE			(0x00000000)
-#define	BDX_STATE_HW_STOPPED	(0x00000001)
-#define BDX_STATE_STARTED		(0x00000002)
-#define BDX_STATE_OPEN			(0x00000004)
 
 enum LOAD_FW {
 	NO_FW_LOAD = 0,
@@ -259,17 +248,15 @@ struct bdx_device_descr {
 #define LUXOR_MAX_PORT     2
 #define BDX_MAX_RX_DONE    150
 #define BDX_TXF_DESC_SZ    16
-#define BDX_MAX_TX_LEVEL   (priv->txd_fifo0.m.memsz - 16)
+#define BDX_MAX_TX_LEVEL   (priv->txd_fifo0.memsz - 16)
 #define BDX_MIN_TX_LEVEL   256
 #define BDX_NO_UPD_PACKETS 40
 #define BDX_MAX_MTU		   (1 << 14)
-#define BDX_IRQ_TYPE    IRQF_SHARED
 struct pci_nic {
 	int port_num;
 	void __iomem *regs;
 	struct bdx_priv *priv;
 };
-
 
 #define PCK_TH_MULT   128
 #define INT_COAL_MULT 2
@@ -300,22 +287,6 @@ struct fifo {
 	u16 size_mask;
 	u16 pktsz;		/* Skb packet size to allocate */
 	u16 rcvno;		/* Number of buffers that come from this RXF */
-};
-
-struct txf_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos  */
-};
-
-struct txd_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos */
-};
-
-struct rxf_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos */
-};
-
-struct rxd_fifo {
-	struct fifo m;		/* The minimal set of variables used by all fifos */
 };
 
 struct bdx_page {
@@ -442,24 +413,22 @@ struct bdx_priv {
 	struct net_device *ndev;
 	struct napi_struct napi;
 	/* RX FIFOs: 1 for data (full) descs, and 2 for free descs */
-	struct rxd_fifo rxd_fifo0;
-	struct rxf_fifo rxf_fifo0;
+	struct fifo rxd_fifo0;
+	struct fifo rxf_fifo0;
 	struct rxdb *rxdb0;	/* Rx dbs to store skb pointers */
 	int napi_stop;
 	struct vlan_group *vlgrp;
 	/* Tx FIFOs: 1 for data desc, 1 for empty (acks) desc */
-	struct txd_fifo txd_fifo0;
-	struct txf_fifo txf_fifo0;
+	struct fifo txd_fifo0;
+	struct fifo txf_fifo0;
 	struct txdb txdb;
 	int tx_level;
 	int tx_update_mark;
 	int tx_noupd;
 
 	/* Rarely used */
-	u8 port;
 	u8 phy_mdio_port;
 	enum PHY_TYPE phy_type;
-	u32 msg_enable;
 	int stats_flag;
 	struct bdx_stats hw_stats;
 	struct net_device_stats net_stats;
@@ -473,7 +442,6 @@ struct bdx_priv {
 	u32 tdintcm;
 	u16 id;
 	u16 count;
-	struct timer_list blink_timer;
 	u32 isr_mask;
 	int link_speed;		/* 0- no link or SPEED_100 SPEED_1000 SPEED_10000 */
 	u32 link_loop_cnt;
@@ -485,7 +453,6 @@ struct bdx_priv {
 	char *b0_va;		/* Virtual address of buffer */
 	char *drv_name;		/* device driver name */
 	u32 errmsg_count;
-	u32 state;
 	/* SHORT_PKT_FIX end */
 	u16 deviceId;
 	u16 subsystem_vendor;
@@ -495,7 +462,6 @@ struct bdx_priv {
 	 __ETHTOOL_DECLARE_LINK_MODE_MASK(link_advertising);
 #endif
 	u32 eee_enabled;
-	struct bdx_cMem *cMem;
 	struct bdx_rx_page_table rx_page_table;
 #ifdef TN40_THUNDERBOLT
 	int bDeviceRemoved;
@@ -537,6 +503,15 @@ struct rxf_desc {
 #define GET_RSS_FUNC(x)     GET_BITS_SHIFT((x), 2, 0)
 #define GET_RSS_TYPE(x)     GET_BITS_SHIFT((x), 8, 8)
 #define GET_RSS_TCPU(x)     GET_BITS_SHIFT((x), 8, 16)
+
+/* GET_RXD_ERR(x) error types: */
+#define IS_FCS_ERR(x)  ((x) & 0x4)	/* Frame Check Sequence Error */
+#define RXD_ERR_UDP_CSUM    0x8
+#define RXD_ERR_TCP_CSUM    0x10
+
+/* GET_RXD_PKT_ID(x) can return these known values: */
+#define PKT_ID_TCP 1
+#define PKT_ID_UDP 2
 
 struct rxd_desc {
 	u32 rxd_val1;
@@ -862,21 +837,9 @@ struct txf_desc {
 #define netdev_for_each_mc_addr(mclist, dev) \
     for (mclist = dev->mc_list; mclist; mclist = mclist->next)
 #endif
+
 #define dev_mc_list     netdev_hw_addr
 #define dmi_addr    addr
-#define LUXOR__SCHEDULE_PREP(napi, dev) napi_schedule_prep(napi)
-#define LUXOR__SCHEDULE(napi, dev)  __napi_schedule(napi)
-#define LUXOR__POLL_ENABLE(dev)
-#define LUXOR__POLL_DISABLE(dev)
-#define LUXOR__NAPI_ENABLE(napi)    napi_enable(napi)
-#define LUXOR__NAPI_DISABLE(napi)   napi_disable(napi)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
-#define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
-                  netif_napi_add_weight(dev, napi, poll, weight)
-#else
-#define LUXOR__NAPI_ADD(dev, napi, poll, weight) \
-                  netif_napi_add(dev, napi, poll, weight)
-#endif
 
 /*
  * Note: 32 bit  kernels use 16 bits for page_offset. Do not increase
@@ -889,20 +852,10 @@ struct txf_desc {
 #endif
 
 #if defined(NETIF_F_GRO)
-#define LUXOR__VLAN_RECEIVE(napi, grp, vlan_tci, skb) \
-    vlan_gro_receive(napi, grp, vlan_tci, skb)
-#define LUXOR__RECEIVE(napi, skb)  \
-    napi_gro_receive(napi, skb)
-#define LUXOR__GRO_FLUSH(napi)
 #define IS_GRO(ndev)            ((ndev->features & NETIF_F_GRO) != 0)
 #else
 #define NETIF_F_GRO         0
-#define LUXOR__VLAN_RECEIVE(napi, grp, vlan_tci, skb)   \
-    vlan_hwaccel_receive_skb(skb, grp, vlan_tci)
 
-#define LUXOR__RECEIVE(napi, skb) \
-    netif_receive_skb(skb)
-#define LUXOR__GRO_FLUSH(napi)
 #define IS_GRO(ndev)            0
 #endif
 

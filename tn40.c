@@ -127,8 +127,7 @@ MODULE_DEVICE_TABLE(pci, bdx_pci_tbl);
 /* Definitions needed by ISR or NAPI functions */
 static void bdx_rx_alloc_buffers(struct bdx_priv *priv);
 static void bdx_tx_cleanup(struct bdx_priv *priv);
-static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f,
-			  int budget);
+static int bdx_rx_receive(struct bdx_priv *priv, struct fifo *f, int budget);
 static int bdx_tx_init(struct bdx_priv *priv);
 static int bdx_rx_init(struct bdx_priv *priv);
 static void bdx_tx_free(struct bdx_priv *priv);
@@ -219,9 +218,9 @@ void dbg_printRegs(struct bdx_priv *priv, char *msg)
 	pr_debug("veneto:");
 	pr_debug("pc = 0x%x li = 0x%x ic = %d\n", READ_REG(priv, 0x2300),
 		 READ_REG(priv, 0x2310), READ_REG(priv, 0x2320));
-	dbg_printFifo(&priv->txd_fifo0.m, (char *)"TXD");
-	dbg_printFifo(&priv->rxf_fifo0.m, (char *)"RXF");
-	dbg_printFifo(&priv->rxd_fifo0.m, (char *)"RXD");
+	dbg_printFifo(&priv->txd_fifo0, (char *)"TXD");
+	dbg_printFifo(&priv->rxf_fifo0, (char *)"RXF");
+	dbg_printFifo(&priv->rxd_fifo0, (char *)"RXD");
 	pr_debug("~~~~~~~~~~~~~\n");
 
 }
@@ -430,7 +429,7 @@ int bdx_mdio_write(struct bdx_priv *priv, int device, int port, u16 addr,
 
 }
 
-void setMDIOSpeed(struct bdx_priv *priv, u32 speed)
+static void bdx_mdio_set_speed(struct bdx_priv *priv, u32 speed)
 {
 	void __iomem *regs = priv->pBdxRegs;
 	int mdio_cfg;
@@ -453,7 +452,7 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 	int rVal = -1;
 
 	i = port;
-	setMDIOSpeed(priv, MDIO_SPEED_1MHZ);
+	bdx_mdio_set_speed(priv, MDIO_SPEED_1MHZ);
 
 	phy_id = bdx_mdio_read(priv, 1, i, 0x0002);	/* PHY_ID_HIGH */
 	phy_id &= 0xFFFF;
@@ -566,7 +565,7 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 	}
 
 	priv->isr_mask |= IR_TMR1;
-	setMDIOSpeed(priv, priv->phy_ops.mdio_speed);
+	bdx_mdio_set_speed(priv, priv->phy_ops.mdio_speed);
 	dev_info(&priv->pdev->dev, "PHY detected on port %u ID=%X - %s\n",
 		 *port_t, i, s);
 
@@ -940,8 +939,8 @@ static irqreturn_t bdx_isr_napi(int irq, void *dev)
 		bdx_isr_extra(priv, isr);
 
 	if (isr & (IR_RX_DESC_0 | IR_TX_FREE_0 | IR_TMR1)) {
-		if (likely(LUXOR__SCHEDULE_PREP(&priv->napi, ndev))) {
-			LUXOR__SCHEDULE(&priv->napi, ndev);
+		if (likely(napi_schedule_prep(&priv->napi))) {
+			__napi_schedule(&priv->napi);
 			return IRQ_HANDLED;
 		} else {
 			/*
@@ -1145,18 +1144,17 @@ static int bdx_hw_start(struct bdx_priv *priv)
 	}
 	WRITE_REG(priv, regVGLB, 0);
 	WRITE_REG(priv, regMAX_FRAME_A,
-		  priv->rxf_fifo0.m.pktsz & MAX_FRAME_AB_VAL);
+		  priv->rxf_fifo0.pktsz & MAX_FRAME_AB_VAL);
 
-	netdev_dbg(priv->ndev, "RDINTCM =%08x\n", priv->rdintcm);	/*NOTE: test script uses this */
+	netdev_dbg(priv->ndev, "RDINTCM =%08x\n", priv->rdintcm);
 	WRITE_REG(priv, regRDINTCM0, priv->rdintcm);
 	WRITE_REG(priv, regRDINTCM2, 0);
 
-	netdev_dbg(priv->ndev, "TDINTCM =%08x\n", priv->tdintcm);	/*NOTE: test script uses this */
+	netdev_dbg(priv->ndev, "TDINTCM =%08x\n", priv->tdintcm);
 	WRITE_REG(priv, regTDINTCM0, priv->tdintcm);	/* old val = 0x300064 */
 
-	/* Enable timer interrupt once in 2 secs. */
-
 	bdx_restore_mac(priv->ndev, priv);
+
 	/* Pause frame */
 	WRITE_REG(priv, 0x12E0, 0x28);
 	WRITE_REG(priv, regPAUSE_QUANT, 0xFFFF);
@@ -1168,27 +1166,21 @@ static int bdx_hw_start(struct bdx_priv *priv)
 
 	bdx_link_changed(priv);
 	bdx_enable_interrupts(priv);
-	LUXOR__POLL_ENABLE(priv->ndev);
-	priv->state &= ~BDX_STATE_HW_STOPPED;
 
 	return 0;
-
 }
 
 static void bdx_hw_stop(struct bdx_priv *priv)
 {
-
-	if ((priv->state & BDX_STATE_HW_STOPPED) == 0) {
-		priv->state |= BDX_STATE_HW_STOPPED;
+	if (netif_running(priv->ndev)) {
 		bdx_disable_interrupts(priv);
-		LUXOR__POLL_DISABLE(priv->ndev);
 		netif_carrier_off(priv->ndev);
 		netif_stop_queue(priv->ndev);
 	}
 
 }
 
-static int bdx_hw_reset_direct(struct pci_dev *pdev, void __iomem *regs)
+static int bdx_hw_reset(struct pci_dev *pdev, void __iomem *regs)
 {
 	u32 val, i;
 
@@ -1210,35 +1202,6 @@ static int bdx_hw_reset_direct(struct pci_dev *pdev, void __iomem *regs)
 	dev_err(&pdev->dev, "HW reset failed\n");
 
 	return 1;		/* failure */
-
-}
-
-static int bdx_hw_reset(struct bdx_priv *priv)
-{
-	u32 val, i;
-
-	if (priv->port == 0) {
-		/* Reset sequences: read, write 1, read, write 0 */
-		val = READ_REG(priv, regCLKPLL);
-		WRITE_REG(priv, regCLKPLL, (val | CLKPLL_SFTRST) + 0x8);
-		udelay(50);
-		val = READ_REG(priv, regCLKPLL);
-		WRITE_REG(priv, regCLKPLL, val & ~CLKPLL_SFTRST);
-	}
-	/* Check that the PLLs are locked and reset ended */
-	for (i = 0; i < 70; i++, mdelay(10)) {
-		if ((READ_REG(priv, regCLKPLL) & CLKPLL_LKD) == CLKPLL_LKD) {
-			udelay(50);
-			/* Do any PCI-E read transaction */
-			READ_REG(priv, regRXD_CFG0_0);
-			return 0;
-
-		}
-	}
-	netdev_err(priv->ndev, "HW reset failed\n");
-
-	return 1;		/* Failure */
-
 }
 
 static int bdx_sw_reset(struct bdx_priv *priv)
@@ -1289,57 +1252,44 @@ static int bdx_sw_reset(struct bdx_priv *priv)
 
 }
 
-/* bdx_reset - Perform the right type of reset depending on hw type */
-static int bdx_reset(struct bdx_priv *priv)
-{
-
-	return bdx_hw_reset(priv);
-
-}
-
 static int bdx_start(struct bdx_priv *priv, int bLoadFw)
 {
 	int rc = 0;
 
-	if ((priv->state & BDX_STATE_STARTED) == 0) {
-		priv->state |= BDX_STATE_STARTED;
-		do {
-			rc = -1;
-			if (bdx_tx_init(priv)) {
-				break;
-			}
-			if (bdx_rx_init(priv)) {
-				break;
-			}
-			if (bdx_rx_alloc_pages(priv)) {
-				break;
-			}
-			bdx_rx_alloc_buffers(priv);
-			if (request_irq
-			    (priv->pdev->irq, &bdx_isr_napi, BDX_IRQ_TYPE,
-			     priv->ndev->name, priv->ndev)) {
-				break;
-			}
-			if (bLoadFw && bdx_fw_load(priv)) {
-				break;
-			}
-			bdx_init_rss(priv);
-			rc = 0;
-		} while (0);
-	}
-	if (rc == 0) {
-		if (priv->state & BDX_STATE_OPEN) {
-			rc = bdx_hw_start(priv);
+	do {
+		rc = -1;
+		if (bdx_tx_init(priv)) {
+			break;
 		}
-	}
+		if (bdx_rx_init(priv)) {
+			break;
+		}
+		if (bdx_rx_alloc_pages(priv)) {
+			break;
+		}
+		bdx_rx_alloc_buffers(priv);
+		if (request_irq
+		    (priv->pdev->irq, &bdx_isr_napi, IRQF_SHARED,
+		     priv->ndev->name, priv->ndev)) {
+			break;
+		}
+		if (bLoadFw && bdx_fw_load(priv)) {
+			break;
+		}
+		bdx_init_rss(priv);
+		rc = 0;
+	} while (0);
+
+	if (rc == 0)
+		rc = bdx_hw_start(priv);
+
 	return rc;
 
 }
 
 static void bdx_stop(struct bdx_priv *priv)
 {
-	if (priv->state & BDX_STATE_STARTED) {
-		priv->state &= ~BDX_STATE_STARTED;
+	if (netif_running(priv->ndev)) {
 		bdx_hw_stop(priv);
 		free_irq(priv->pdev->irq, priv->ndev);
 		pci_free_irq_vectors(priv->pdev);
@@ -1365,14 +1315,10 @@ static void bdx_stop(struct bdx_priv *priv)
  **/
 static int bdx_close(struct net_device *ndev)
 {
-	struct bdx_priv *priv;
-
-	priv = netdev_priv(ndev);
+	struct bdx_priv *priv = netdev_priv(ndev);
 	bdx_stop(priv);
-	LUXOR__NAPI_DISABLE(&priv->napi);
-	priv->state &= ~BDX_STATE_OPEN;
+	napi_disable(&priv->napi);
 	return 0;
-
 }
 
 /**
@@ -1394,13 +1340,12 @@ static int bdx_open(struct net_device *ndev)
 	int rc;
 
 	priv = netdev_priv(ndev);
-	priv->state |= BDX_STATE_OPEN;
 	bdx_sw_reset(priv);
 	if (netif_running(ndev)) {
 		netif_stop_queue(priv->ndev);
 	}
 	if ((rc = bdx_start(priv, NO_FW_LOAD)) == 0) {
-		LUXOR__NAPI_ENABLE(&priv->napi);
+		napi_enable(&priv->napi);
 	} else {
 		bdx_close(ndev);
 	}
@@ -1646,7 +1591,7 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		stats_vector[i] = bdx_read_l2stat(priv, addr);
 		addr += 0x10;
 	}
-	BDX_ASSERT(addr != 0x72C0);
+	WARN_ON(addr != 0x72C0);
 
 	/* 0x72C0-0x72E0 RSRV */
 	addr = 0x72F0;
@@ -1654,7 +1599,7 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		stats_vector[i] = bdx_read_l2stat(priv, addr);
 		addr += 0x10;
 	}
-	BDX_ASSERT(addr != 0x7330);
+	WARN_ON(addr != 0x7330);
 
 	/* 0x7330-0x7360 RSRV */
 	addr = 0x7370;
@@ -1662,7 +1607,7 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		stats_vector[i] = bdx_read_l2stat(priv, addr);
 		addr += 0x10;
 	}
-	BDX_ASSERT(addr != 0x73A0);
+	WARN_ON(addr != 0x73A0);
 
 	/* 0x73A0-0x73B0 RSRV */
 	addr = 0x73C0;
@@ -1671,8 +1616,8 @@ static void bdx_update_stats(struct bdx_priv *priv)
 		addr += 0x10;
 	}
 
-	BDX_ASSERT(addr != 0x7400);
-	BDX_ASSERT((sizeof(struct bdx_stats) / sizeof(u64)) != i);
+	WARN_ON(addr != 0x7400);
+	WARN_ON((sizeof(struct bdx_stats) / sizeof(u64)) != i);
 }
 
 static struct net_device_stats *bdx_get_stats(struct net_device *ndev)
@@ -1707,20 +1652,21 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 	size_t size = sizeof(struct rxdb) + (nelem * sizeof(int)) +
 	    (nelem * sizeof(struct rx_map));
 
-	db = vmalloc(size);
-	if (likely(db != NULL)) {
-		memset(db, 0, size);
-		db->stack = (int *)(db + 1);
-		db->elems = (void *)(db->stack + nelem);
-		db->nelem = nelem;
-		db->top = nelem;
-		for (i = 0; i < nelem; i++) {
-			db->stack[i] = nelem - i - 1;	/* To make the first
-							 * alloc close to db
-							 * struct */
-		}
+	db = vzalloc(size);
+	if (!db)
+		return NULL;
+
+	db->stack = (int *)(db + 1);
+	db->elems = (void *)(db->stack + nelem);
+	db->nelem = nelem;
+	db->top = nelem;
+	for (i = 0; i < nelem; i++) {
+		/* Make the first alloc close to db struct */
+		db->stack[i] = nelem - i - 1;
 	}
-	if ((db->pkt = vmalloc(pktSize)) == NULL) {
+
+	db->pkt = vzalloc(pktSize);
+	if (!db->pkt) {
 		bdx_rxdb_destroy(db);
 		db = NULL;
 	}
@@ -1730,14 +1676,14 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 
 static inline int bdx_rxdb_alloc_elem(struct rxdb *db)
 {
-	BDX_ASSERT(db->top <= 0);
+	WARN_ON(db->top <= 0);
 	TN40_ASSERT((db->top > 0), "top %d\n", db->top);
 	return db->stack[--(db->top)];
 }
 
 static inline void *bdx_rxdb_addr_elem(struct rxdb *db, unsigned n)
 {
-	BDX_ASSERT((n >= (unsigned)db->nelem));
+	WARN_ON((n >= (unsigned)db->nelem));
 	TN40_ASSERT((n < (unsigned)db->nelem), "n %d nelem %d\n", n, db->nelem);
 	return db->elems + n;
 }
@@ -1749,7 +1695,7 @@ static inline int bdx_rxdb_available(struct rxdb *db)
 
 static inline void bdx_rxdb_free_elem(struct rxdb *db, unsigned n)
 {
-	BDX_ASSERT((n >= (unsigned)db->nelem));
+	WARN_ON((n >= (unsigned)db->nelem));
 	db->stack[(db->top)++] = n;
 }
 
@@ -1807,12 +1753,6 @@ static void dbg_printRxPageTable(struct bdx_priv *priv)
 
 }
 
-static inline struct bdx_page *bdx_rx_page(struct rx_map *dm)
-{
-	return dm->bdx_page;
-
-}
-
 static int bdx_rx_set_page_size(struct bdx_priv *priv, int buf_size,
 				int *page_used)
 {
@@ -1833,13 +1773,6 @@ static int bdx_rx_set_page_size(struct bdx_priv *priv, int buf_size,
 	*page_used = page_size - page_unused;
 
 	return page_size;
-
-}
-
-static int bdx_rx_get_page_size(struct bdx_priv *priv)
-{
-	return priv->rx_page_table.page_size;
-
 }
 
 static int bdx_rx_alloc_page(struct bdx_priv *priv, struct bdx_page *bdx_page)
@@ -1873,9 +1806,9 @@ static int bdx_rx_alloc_page(struct bdx_priv *priv, struct bdx_page *bdx_page)
 static int bdx_rx_alloc_pages(struct bdx_priv *priv)
 {
 	int page_used, nPages, j;
-	struct rxf_fifo *f = &priv->rxf_fifo0;
+	struct fifo *f = &priv->rxf_fifo0;
 	struct rxdb *db = priv->rxdb0;
-	int buf_size = ROUND_UP(f->m.pktsz, SMP_CACHE_BYTES);
+	int buf_size = ROUND_UP(f->pktsz, SMP_CACHE_BYTES);
 	int rVal = -1;
 
 	do {
@@ -2078,19 +2011,22 @@ static void bdx_rx_set_dm_page(register struct rx_map *dm,
 static int bdx_rx_init(struct bdx_priv *priv)
 {
 
-	if (bdx_fifo_init(priv, &priv->rxd_fifo0.m, priv->rxd_size,
+	if (bdx_fifo_init(priv, &priv->rxd_fifo0, priv->rxd_size,
 			  regRXD_CFG0_0, regRXD_CFG1_0,
 			  regRXD_RPTR_0, regRXD_WPTR_0))
 		goto err_mem;
-	if (bdx_fifo_init(priv, &priv->rxf_fifo0.m, priv->rxf_size,
+
+	if (bdx_fifo_init(priv, &priv->rxf_fifo0, priv->rxf_size,
 			  regRXF_CFG0_0, regRXF_CFG1_0,
 			  regRXF_RPTR_0, regRXF_WPTR_0))
 		goto err_mem;
-	priv->rxf_fifo0.m.pktsz = priv->ndev->mtu + VLAN_ETH_HLEN;
-	if (!
-	    (priv->rxdb0 =
-	     bdx_rxdb_create(priv->rxf_fifo0.m.memsz / sizeof(struct rxf_desc),
-			     priv->rxf_fifo0.m.pktsz)))
+
+	priv->rxf_fifo0.pktsz = priv->ndev->mtu + VLAN_ETH_HLEN;
+
+	priv->rxdb0 =
+	    bdx_rxdb_create(priv->rxf_fifo0.memsz / sizeof(struct rxf_desc),
+			    priv->rxf_fifo0.pktsz);
+	if (!priv->rxdb0)
 		goto err_mem;
 
 	return 0;
@@ -2106,7 +2042,7 @@ err_mem:
  * @f    - RXF fifo
  */
 static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
-				struct rxf_fifo *f)
+				struct fifo *f)
 {
 	struct rx_map *dm;
 	u16 i;
@@ -2123,10 +2059,10 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 		if (dm->dma) {
 			if (dm->skb) {
 				dma_unmap_single(&priv->pdev->dev, dm->dma,
-						 f->m.pktsz, DMA_FROM_DEVICE);
+						 f->pktsz, DMA_FROM_DEVICE);
 				dev_kfree_skb(dm->skb);
 			} else {
-				struct bdx_page *bdx_page = bdx_rx_page(dm);
+				struct bdx_page *bdx_page = dm->bdx_page;
 				if (bdx_page) {
 					bdx_rx_put_page(priv, dm);
 				}
@@ -2150,8 +2086,8 @@ static void bdx_rx_free(struct bdx_priv *priv)
 		bdx_rxdb_destroy(priv->rxdb0);
 		priv->rxdb0 = NULL;
 	}
-	bdx_fifo_free(priv, &priv->rxf_fifo0.m);
-	bdx_fifo_free(priv, &priv->rxd_fifo0.m);
+	bdx_fifo_free(priv, &priv->rxf_fifo0);
+	bdx_fifo_free(priv, &priv->rxd_fifo0);
 
 }
 
@@ -2169,24 +2105,21 @@ static void bdx_rx_free(struct bdx_priv *priv)
 
 /* TBD: Do not update WPTR if no desc were written */
 
-static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
+static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 {
 	int dno, delta, idx;
 	register struct rxf_desc *rxfd;
 	register struct rx_map *dm;
-	int page_size;
 	struct rxdb *db = priv->rxdb0;
-	struct rxf_fifo *f = &priv->rxf_fifo0;
+	struct fifo *f = &priv->rxf_fifo0;
 	int nPages = 0;
 	struct bdx_page *bdx_page = NULL;
 	int buf_size = priv->rx_page_table.buf_size;
+	int page_size = priv->rx_page_table.page_size;
 	int page_off = -1;
 	u64 dma = 0ULL;
 
-	netdev_dbg(priv->ndev, "_bdx_rx_alloc_buffers is at %p\n",
-		   _bdx_rx_alloc_buffers);
 	dno = bdx_rxdb_available(db) - 1;
-	page_size = bdx_rx_get_page_size(priv);
 	netdev_dbg(priv->ndev, "dno %d page_size %d buf_size %d\n", dno,
 		   page_size, priv->rx_page_table.buf_size);
 	while (dno > 0) {
@@ -2223,7 +2156,8 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 			 * increment the page usage count.
 			 */
 		}
-		rxfd = (struct rxf_desc *)(f->m.va + f->m.wptr);
+
+		rxfd = (struct rxf_desc *)(f->va + f->wptr);
 		idx = bdx_rxdb_alloc_elem(db);
 		dm = bdx_rxdb_addr_elem(db, idx);
 		dm->size = page_size;
@@ -2238,34 +2172,28 @@ static void _bdx_rx_alloc_buffers(struct bdx_priv *priv)
 		rxfd->va_lo = idx;
 		rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
 		rxfd->pa_hi = CPU_CHIP_SWAP32(H32_64(dm->dma));
-		rxfd->len = CPU_CHIP_SWAP32(f->m.pktsz);
+		rxfd->len = CPU_CHIP_SWAP32(f->pktsz);
 		print_rxfd(rxfd);
-		f->m.wptr += sizeof(struct rxf_desc);
-		delta = f->m.wptr - f->m.memsz;
+		f->wptr += sizeof(struct rxf_desc);
+		delta = f->wptr - f->memsz;
 		if (unlikely(delta >= 0)) {
-			f->m.wptr = delta;
+			f->wptr = delta;
 			if (delta > 0) {
-				memcpy(f->m.va, f->m.va + f->m.memsz, delta);
+				memcpy(f->va, f->va + f->memsz, delta);
 				netdev_dbg(priv->ndev, "Wrapped descriptor\n");
 			}
 		}
 		dno--;
 	}
 	netdev_dbg(priv->ndev, "nPages %d\n", nPages);
-	WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
-	netdev_dbg(priv->ndev, "WRITE_REG 0x%04x f->m.reg_WPTR 0x%x\n",
-		   f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
-	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->m.reg_RPTR=0x%x\n",
-		   f->m.reg_RPTR, READ_REG(priv, f->m.reg_RPTR));
-	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->m.reg_WPTR=0x%x\n",
-		   f->m.reg_WPTR, READ_REG(priv, f->m.reg_WPTR));
-	dbg_printFifo(&priv->rxf_fifo0.m, (char *)"RXF");
-
-}
-
-static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
-{
-	_bdx_rx_alloc_buffers(priv);
+	WRITE_REG(priv, f->reg_WPTR, f->wptr & TXF_WPTR_WR_PTR);
+	netdev_dbg(priv->ndev, "WRITE_REG 0x%04x f->reg_WPTR 0x%x\n",
+		   f->reg_WPTR, f->wptr & TXF_WPTR_WR_PTR);
+	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->reg_RPTR=0x%x\n",
+		   f->reg_RPTR, READ_REG(priv, f->reg_RPTR));
+	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->reg_WPTR=0x%x\n",
+		   f->reg_WPTR, READ_REG(priv, f->reg_WPTR));
+	dbg_printFifo(&priv->rxf_fifo0, (char *)"RXF");
 
 }
 
@@ -2273,59 +2201,25 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 {
 	struct rxdb *db = priv->rxdb0;
 	struct rx_map *dm = bdx_rxdb_addr_elem(db, rxdd->va_lo);
-	struct rxf_fifo *f = &priv->rxf_fifo0;
-	struct rxf_desc *rxfd = (struct rxf_desc *)(f->m.va + f->m.wptr);
+	struct fifo *f = &priv->rxf_fifo0;
+	struct rxf_desc *rxfd = (struct rxf_desc *)(f->va + f->wptr);
 	int delta;
 
 	rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO=1 BC=3 */
 	rxfd->va_lo = rxdd->va_lo;
 	rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
 	rxfd->pa_hi = CPU_CHIP_SWAP32(H32_64(dm->dma));
-	rxfd->len = CPU_CHIP_SWAP32(f->m.pktsz);
+	rxfd->len = CPU_CHIP_SWAP32(f->pktsz);
 	print_rxfd(rxfd);
-	f->m.wptr += sizeof(struct rxf_desc);
-	delta = f->m.wptr - f->m.memsz;
+	f->wptr += sizeof(struct rxf_desc);
+	delta = f->wptr - f->memsz;
 	if (unlikely(delta >= 0)) {
-		f->m.wptr = delta;
+		f->wptr = delta;
 		if (delta > 0) {
-			memcpy(f->m.va, f->m.va + f->m.memsz, delta);
+			memcpy(f->va, f->va + f->memsz, delta);
 			netdev_dbg(priv->ndev, "wrapped descriptor\n");
 		}
 	}
-
-}
-
-static inline u16 tcpCheckSum(u16 *buf, u16 len, u16 *saddr, u16 *daddr,
-			      u16 proto)
-{
-	u32 sum;
-	u16 j = len;
-
-	sum = 0;
-	while (j > 1) {
-		sum += *buf++;
-		if (sum & 0x80000000) {
-			sum = (sum & 0xFFFF) + (sum >> 16);
-		}
-		j -= 2;
-	}
-	if (j & 1) {
-		sum += *((u8 *) buf);
-	}
-	/* Add the tcp pseudo-header */
-	sum += *(saddr++);
-	sum += *saddr;
-	sum += *(daddr++);
-	sum += *daddr;
-	sum += __constant_htons(proto);
-	sum += __constant_htons(len);
-	/* Fold 32-bit sum to 16 bits */
-	while (sum >> 16) {
-		sum = (sum & 0xFFFF) + (sum >> 16);
-	}
-	/* One's complement of sum */
-
-	return ((u16) (sum));
 
 }
 
@@ -2335,56 +2229,56 @@ static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
 	skb_add_rx_frag(skb, 0, page, off, len, SKB_TRUESIZE(len));
 }
 
-#define PKT_ERR_LEN		(70)
+#define PKT_ERR_LEN	(70)
 
-static int bdx_rx_error(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
+/* Check for hardware's false error indications of TCP/UDP transport layer
+ * header checksums */
+static int is_csum_err(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
 {
 	struct ethhdr *eth = (struct ethhdr *)pkt;
 	struct iphdr *iph =
 	    (struct iphdr *)(pkt + sizeof(struct ethhdr) +
 			     ((eth->h_proto ==
 			       __constant_htons(ETH_P_8021Q)) ? VLAN_HLEN : 0));
-	int rVal = 1;
+	int transport_proto;
+	u16 *l4hdr = (void *)iph + sizeof(struct iphdr);
+	struct udphdr *udp = (struct udphdr *)l4hdr;
+	__sum16 csum;
 
-	if (rxd_err == 0x8) {	/* UDP checksum error */
-		struct udphdr *udp =
-		    (struct udphdr *)((u8 *) iph + sizeof(struct iphdr));
-		if (udp->check == 0) {
-			netdev_dbg(priv->ndev, "false rxd_err = 0x%x\n",
-				   rxd_err);
-			rVal = 0;	/* Work around H/W false error indication */
-		} else if (len < PKT_ERR_LEN) {
-			u16 udpSum;
-			udpSum =
-			    tcpCheckSum((u16 *) udp,
-					htons(iph->tot_len) -
-					(iph->ihl * sizeof(u32)),
-					(u16 *) & iph->saddr,
-					(u16 *) & iph->daddr, IPPROTO_UDP);
-			if (udpSum == 0xFFFF) {
-				netdev_dbg(priv->ndev,
-					   "false rxd_err = 0x%x\n", rxd_err);
-				rVal = 0;	/* Work around H/W false error indication */
-			}
-		}
-	} else if ((rxd_err == 0x10) && (len < PKT_ERR_LEN)) {	/* TCP checksum error */
-		u16 tcpSum;
-		struct tcphdr *tcp =
-		    (struct tcphdr *)((u8 *) iph + sizeof(struct iphdr));
-		tcpSum =
-		    tcpCheckSum((u16 *) tcp,
-				htons(iph->tot_len) - (iph->ihl * sizeof(u32)),
-				(u16 *) & iph->saddr, (u16 *) & iph->daddr,
-				IPPROTO_TCP);
-		if (tcpSum == 0xFFFF) {
-			netdev_dbg(priv->ndev, "false rxd_err = 0x%x\n",
-				   rxd_err);
-			rVal = 0;	/* Work around H/W false error indication */
-		}
+	if (IS_FCS_ERR(rxd_err))
+		return 0;	/* Frame check sequence error, not checksum */
+
+	if (rxd_err == RXD_ERR_UDP_CSUM && udp->check == 0) {
+		netdev_warn(priv->ndev, "false rxd_err = 0x%x\n", rxd_err);
+		return 0;
 	}
 
-	return rVal;
+	if (len >= PKT_ERR_LEN)
+		return 1;
 
+	if (rxd_err == RXD_ERR_UDP_CSUM)
+		transport_proto = IPPROTO_UDP;
+	else if (rxd_err == RXD_ERR_TCP_CSUM)
+		transport_proto = IPPROTO_TCP;
+	else {
+		netdev_warn(priv->ndev, "unknown rxd_error: 0x%x", rxd_err);
+		return 1;
+	}
+
+	/* When is this needed anyway? How do I test it? */
+	csum =
+	    csum_tcpudp_magic(iph->saddr, iph->daddr,
+			      iph->tot_len - sizeof(struct iphdr),
+			      transport_proto, 0);
+	netdev_info(priv->ndev, "csum: 0x%x", csum);
+
+	/* Work around H/W false error indication */
+	if (csum == 0xFFFF) {
+		netdev_warn(priv->ndev, "false rxd_err = 0x%x\n", rxd_err);
+		return 0;
+	}
+
+	return 1;
 }
 
 /* bdx_rx_receive - Receives full packet from RXD fifo and pass them to the OS.
@@ -2398,16 +2292,13 @@ static int bdx_rx_error(struct bdx_priv *priv, char *pkt, u32 rxd_err, u16 len)
  * @priv - NIC's private structure
  * @f    - RXF fifo that needs skbs
  */
-
-/* TBD: replace memcpy func call by explicit inline asm */
-
-static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
+static int bdx_rx_receive(struct bdx_priv *priv, struct fifo *f, int budget)
 {
 	struct sk_buff *skb;
 	struct rxd_desc *rxdd;
 	struct rx_map *dm;
 	struct bdx_page *bdx_page;
-	struct rxf_fifo *rxf_fifo;
+	struct fifo *rxf_fifo;
 	u32 rxd_val1, rxd_err;
 	u16 len;
 	u16 rxd_vlan;
@@ -2417,13 +2308,13 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 	int done = 0;
 	struct rxdb *db = NULL;
 
-	f->m.wptr = READ_REG(priv, f->m.reg_WPTR) & TXF_WPTR_WR_PTR;
-	size = f->m.wptr - f->m.rptr;
+	f->wptr = READ_REG(priv, f->reg_WPTR) & TXF_WPTR_WR_PTR;
+	size = f->wptr - f->rptr;
 	if (size < 0) {
-		size += f->m.memsz;	/* Size is negative :-) */
+		size += f->memsz;	/* Size is negative :-) */
 	}
 	while (size > 0) {
-		rxdd = (struct rxd_desc *)(f->m.va + f->m.rptr);
+		rxdd = (struct rxd_desc *)(f->va + f->rptr);
 		db = priv->rxdb0;
 
 		/*
@@ -2448,7 +2339,7 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 		rxd_val1 = CPU_CHIP_SWAP32(rxdd->rxd_val1);
 		tmp_len = GET_RXD_BC(rxd_val1) << 3;
 		pkt_id = GET_RXD_PKT_ID(rxd_val1);
-		BDX_ASSERT(tmp_len <= 0);
+		WARN_ON(tmp_len <= 0);
 		size -= tmp_len;
 		/* CHECK FOR A PARTIALLY ARRIVED DESCRIPTOR */
 		if (size < 0) {
@@ -2459,43 +2350,35 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 			break;
 		}
 		/* HAVE WE REACHED THE END OF THE QUEUE? */
-		f->m.rptr += tmp_len;
-		tmp_len = f->m.rptr - f->m.memsz;
+		f->rptr += tmp_len;
+		tmp_len = f->rptr - f->memsz;
 		if (unlikely(tmp_len >= 0)) {
-			f->m.rptr = tmp_len;
+			f->rptr = tmp_len;
 			if (tmp_len > 0) {
 				/* COPY PARTIAL DESCRIPTOR TO THE END OF THE QUEUE */
 				netdev_dbg(priv->ndev,
 					   "wrapped desc rptr=%d tmp_len=%d\n",
-					   f->m.rptr, tmp_len);
-				memcpy(f->m.va + f->m.memsz, f->m.va, tmp_len);
+					   f->rptr, tmp_len);
+				memcpy(f->va + f->memsz, f->va, tmp_len);
 			}
 		}
 		dm = bdx_rxdb_addr_elem(db, rxdd->va_lo);
 		prefetch(dm);
-		bdx_page = bdx_rx_page(dm);
+		bdx_page = dm->bdx_page;
 
 		len = CPU_CHIP_SWAP16(rxdd->len);
 		rxd_vlan = CPU_CHIP_SWAP16(rxdd->rxd_vlan);
+
 		print_rxdd(rxdd, rxd_val1, len, rxd_vlan);
 		/* CHECK FOR ERRORS */
 		if (unlikely(rxd_err = GET_RXD_ERR(rxd_val1))) {
-			int bErr = 1;
+			pkt = ((char *)page_address(bdx_page->page) + dm->off);
 
-			if ((!(rxd_err & 0x4)) &&	/* NOT CRC error */
-			    (((rxd_err == 0x8) && (pkt_id == 2)) ||	/* UDP checksum error */
-			     ((rxd_err == 0x10) && (len < PKT_ERR_LEN) && (pkt_id == 1))	/* TCP checksum error */
-			    )
-			    ) {
-				pkt =
-				    ((char *)page_address(bdx_page->page) +
-				     dm->off);
-				bErr = bdx_rx_error(priv, pkt, rxd_err, len);
-			}
-			if (bErr) {
+			netdev_err(priv->ndev, "rxd_err = 0x%x\n", rxd_err);
 
-				netdev_err(priv->ndev, "rxd_err = 0x%x\n",
-					   rxd_err);
+			if (IS_FCS_ERR(rxd_err)
+			    || is_csum_err(priv, pkt, rxd_err, len)) {
+
 				priv->net_stats.rx_errors++;
 				bdx_recycle_skb(priv, rxdd);
 				continue;
@@ -2541,10 +2424,9 @@ static int bdx_rx_receive(struct bdx_priv *priv, struct rxd_fifo *f, int budget)
 	}
 
 	/* CLEANUP */
-	LUXOR__GRO_FLUSH(&priv->napi);
 	priv->net_stats.rx_packets += done;
 	/* FIXME: Do something to minimize pci accesses    */
-	WRITE_REG(priv, f->m.reg_RPTR, f->m.rptr & TXF_WPTR_WR_PTR);
+	WRITE_REG(priv, f->reg_RPTR, f->rptr & TXF_WPTR_WR_PTR);
 	bdx_rx_alloc_buffers(priv);
 
 	return done;
@@ -2637,11 +2519,11 @@ static inline int bdx_tx_db_size(struct txdb *db)
  */
 static inline void __bdx_tx_db_ptr_next(struct txdb *db, struct tx_map **pptr)
 {
-	BDX_ASSERT(db == NULL || pptr == NULL);	/* sanity */
-	BDX_ASSERT(*pptr != db->rptr &&	/* expect either read */
-		   *pptr != db->wptr);	/* or write pointer */
-	BDX_ASSERT(*pptr < db->start ||	/* pointer has to be */
-		   *pptr >= db->end);	/* in range */
+	WARN_ON(db == NULL || pptr == NULL);	/* sanity */
+	WARN_ON(*pptr != db->rptr &&	/* expect either read */
+		*pptr != db->wptr);	/* or write pointer */
+	WARN_ON(*pptr < db->start ||	/* pointer has to be */
+		*pptr >= db->end);	/* in range */
 
 	++*pptr;
 	if (unlikely(*pptr == db->end))
@@ -2654,7 +2536,7 @@ static inline void __bdx_tx_db_ptr_next(struct txdb *db, struct tx_map **pptr)
  */
 static inline void bdx_tx_db_inc_rptr(struct txdb *db)
 {
-	BDX_ASSERT(db->rptr == db->wptr);	/* can't read from empty db */
+	WARN_ON(db->rptr == db->wptr);	/* can't read from empty db */
 	__bdx_tx_db_ptr_next(db, &db->rptr);
 }
 
@@ -2665,8 +2547,8 @@ static inline void bdx_tx_db_inc_rptr(struct txdb *db)
 static inline void bdx_tx_db_inc_wptr(struct txdb *db)
 {
 	__bdx_tx_db_ptr_next(db, &db->wptr);
-	BDX_ASSERT(db->rptr == db->wptr);	/* we can not get empty db as
-						   a result of write */
+	WARN_ON(db->rptr == db->wptr);	/* we can not get empty db as
+					   a result of write */
 }
 
 /* bdx_tx_db_init - Create and initialize txdb.
@@ -2704,7 +2586,7 @@ static int bdx_tx_db_init(struct txdb *d, int sz_type)
  */
 static void bdx_tx_db_close(struct txdb *d)
 {
-	BDX_ASSERT(d == NULL);
+	WARN_ON(d == NULL);
 
 	if (d->start) {
 		vfree(d->start);
@@ -2834,11 +2716,11 @@ static void __init init_txd_sizes(void)
  */
 static int bdx_tx_init(struct bdx_priv *priv)
 {
-	if (bdx_fifo_init(priv, &priv->txd_fifo0.m, priv->txd_size,
+	if (bdx_fifo_init(priv, &priv->txd_fifo0, priv->txd_size,
 			  regTXD_CFG0_0, regTXD_CFG1_0,
 			  regTXD_RPTR_0, regTXD_WPTR_0))
 		goto err_mem;
-	if (bdx_fifo_init(priv, &priv->txf_fifo0.m, priv->txf_size,
+	if (bdx_fifo_init(priv, &priv->txf_fifo0, priv->txf_size,
 			  regTXF_CFG0_0, regTXF_CFG1_0,
 			  regTXF_RPTR_0, regTXF_WPTR_0))
 		goto err_mem;
@@ -2876,19 +2758,14 @@ err_mem:
  */
 static inline int bdx_tx_space(struct bdx_priv *priv)
 {
-	struct txd_fifo *f = &priv->txd_fifo0;
+	struct fifo *f = &priv->txd_fifo0;
 	int fsize;
 
-	f->m.rptr = READ_REG(priv, f->m.reg_RPTR) & TXF_WPTR_WR_PTR;
-	fsize = f->m.rptr - f->m.wptr;
+	f->rptr = READ_REG(priv, f->reg_RPTR) & TXF_WPTR_WR_PTR;
+	fsize = f->rptr - f->wptr;
 	if (fsize <= 0)
-		fsize = f->m.memsz + fsize;
+		fsize = f->memsz + fsize;
 	return (fsize);
-}
-
-void bdx_tx_timeout(struct net_device *ndev)
-{
-	netdev_dbg(ndev, "TX timeout\n");
 }
 
 /* bdx_tx_transmit - Send a packet to the NIC.
@@ -2908,7 +2785,7 @@ void bdx_tx_timeout(struct net_device *ndev)
 static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct bdx_priv *priv = netdev_priv(ndev);
-	struct txd_fifo *f = &priv->txd_fifo0;
+	struct fifo *f = &priv->txd_fifo0;
 	int txd_checksum = 7;	/* full checksum */
 	int txd_lgsnd = 0;
 	int txd_vlan_id = 0;
@@ -2919,13 +2796,9 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	int nr_frags, len;
 	DBG_OFF;
 
-	if (!(priv->state & BDX_STATE_STARTED)) {
-		return -1;
-	}
-
 	/* Build tx descriptor */
-	BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* started with valid wptr */
-	txdd = (struct txd_desc *)(f->m.va + f->m.wptr);
+	WARN_ON(f->wptr >= f->memsz);	/* started with valid wptr */
+	txdd = (struct txd_desc *)(f->va + f->wptr);
 	if (bdx_tx_map_skb(priv, skb, txdd, &nr_frags, &pkt_len) != 0) {
 		dev_kfree_skb_any(skb);
 		return NETDEV_TX_OK;	// probably not entirely OK.
@@ -2965,18 +2838,22 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	 * Increment TXD write pointer. In case of fifo wrapping copy reminder of
 	 *  the descriptor to the beginning
 	 */
-	f->m.wptr += txd_sizes[nr_frags].bytes;
-	len = f->m.wptr - f->m.memsz;
+	f->wptr += txd_sizes[nr_frags].bytes;
+	len = f->wptr - f->memsz;
 	if (unlikely(len >= 0)) {
-		f->m.wptr = len;
+		f->wptr = len;
 		if (len > 0) {
-			BDX_ASSERT(len > f->m.memsz);
-			memcpy(f->m.va, f->m.va + f->m.memsz, len);
+			WARN_ON(len > f->memsz);
+			memcpy(f->va, f->va + f->memsz, len);
 		}
 	}
-	BDX_ASSERT(f->m.wptr >= f->m.memsz);	/* finished with valid wptr */
+	WARN_ON(f->wptr >= f->memsz);	/* finished with valid wptr */
 	priv->tx_level -= txd_sizes[nr_frags].bytes;
-	BDX_ASSERT(priv->tx_level <= 0 || priv->tx_level > BDX_MAX_TX_LEVEL);
+	WARN_ON(priv->tx_level <= 0);
+
+	/* FIXME: this triggers all the time. */
+	WARN_ON_ONCE(priv->tx_level > BDX_MAX_TX_LEVEL);
+
 #if (defined(TN40_PTP) && defined(ETHTOOL_GET_TS_INFO))
 	skb_tx_timestamp(skb);
 #endif
@@ -2987,12 +2864,11 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 		 * platforms like IA64).
 		 *  wmb();
 		 */
-		WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
+		WRITE_REG(priv, f->reg_WPTR, f->wptr & TXF_WPTR_WR_PTR);
 	} else {
 		if (priv->tx_noupd++ > BDX_NO_UPD_PACKETS) {
 			priv->tx_noupd = 0;
-			WRITE_REG(priv, f->m.reg_WPTR,
-				  f->m.wptr & TXF_WPTR_WR_PTR);
+			WRITE_REG(priv, f->reg_WPTR, f->wptr & TXF_WPTR_WR_PTR);
 		}
 	}
 	netif_trans_update(ndev);
@@ -3015,22 +2891,22 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
  */
 static void bdx_tx_cleanup(struct bdx_priv *priv)
 {
-	struct txf_fifo *f = &priv->txf_fifo0;
+	struct fifo *f = &priv->txf_fifo0;
 	struct txdb *db = &priv->txdb;
 	int tx_level = 0;
 
-	f->m.wptr = READ_REG(priv, f->m.reg_WPTR) & TXF_WPTR_MASK;
-	BDX_ASSERT(f->m.rptr >= f->m.memsz);	/* Started with valid rptr */
+	f->wptr = READ_REG(priv, f->reg_WPTR) & TXF_WPTR_MASK;
+	WARN_ON(f->rptr >= f->memsz);	/* Started with valid rptr */
 	netif_tx_lock(priv->ndev);
 
-	while (f->m.wptr != f->m.rptr) {
-		f->m.rptr += BDX_TXF_DESC_SZ;
-		f->m.rptr &= f->m.size_mask;
+	while (f->wptr != f->rptr) {
+		f->rptr += BDX_TXF_DESC_SZ;
+		f->rptr &= f->size_mask;
 		/* Unmap all fragments */
 		/* First has to come tx_maps containing DMA */
-		BDX_ASSERT(db->rptr->len == 0);
+		WARN_ON(db->rptr->len == 0);
 		do {
-			BDX_ASSERT(db->rptr->addr.dma == 0);
+			WARN_ON(db->rptr->addr.dma == 0);
 			netdev_dbg(priv->ndev,
 				   "dma_unmap_page 0x%llx len %d\n",
 				   db->rptr->addr.dma, db->rptr->len);
@@ -3048,19 +2924,19 @@ static void bdx_tx_cleanup(struct bdx_priv *priv)
 	}
 
 	/* Let the HW know which TXF descriptors were cleaned */
-	BDX_ASSERT((f->m.wptr & TXF_WPTR_WR_PTR) >= f->m.memsz);
-	WRITE_REG(priv, f->m.reg_RPTR, f->m.rptr & TXF_WPTR_WR_PTR);
+	WARN_ON((f->wptr & TXF_WPTR_WR_PTR) >= f->memsz);
+	WRITE_REG(priv, f->reg_RPTR, f->rptr & TXF_WPTR_WR_PTR);
 
-	/*
-	 * We reclaimed resources, so in case the Q is stopped by xmit callback,
-	 * we resume the transmission and use tx_lock to synchronize with xmit.
-	 */
 	priv->tx_level += tx_level;
-	BDX_ASSERT(priv->tx_level <= 0 || priv->tx_level > BDX_MAX_TX_LEVEL);
+	WARN_ON(priv->tx_level <= 0);
+
+	/* FIXME: this triggers all the time. */
+	WARN_ON_ONCE(priv->tx_level > BDX_MAX_TX_LEVEL);
+
 	if (priv->tx_noupd) {
 		priv->tx_noupd = 0;
-		WRITE_REG(priv, priv->txd_fifo0.m.reg_WPTR,
-			  priv->txd_fifo0.m.wptr & TXF_WPTR_WR_PTR);
+		WRITE_REG(priv, priv->txd_fifo0.reg_WPTR,
+			  priv->txd_fifo0.wptr & TXF_WPTR_WR_PTR);
 	}
 	if (unlikely(netif_queue_stopped(priv->ndev) &&
 		     netif_carrier_ok(priv->ndev) &&
@@ -3081,7 +2957,7 @@ static void bdx_tx_free_skbs(struct bdx_priv *priv)
 	struct txdb *db = &priv->txdb;
 
 	while (db->rptr != db->wptr) {
-		if (likely(db->rptr->len))
+		if (likely(db->rptr->len > 0))
 			dma_unmap_page(&priv->pdev->dev, db->rptr->addr.dma,
 				       db->rptr->len, DMA_TO_DEVICE);
 		else
@@ -3097,8 +2973,8 @@ static void bdx_tx_free(struct bdx_priv *priv)
 {
 
 	bdx_tx_free_skbs(priv);
-	bdx_fifo_free(priv, &priv->txd_fifo0.m);
-	bdx_fifo_free(priv, &priv->txf_fifo0.m);
+	bdx_fifo_free(priv, &priv->txd_fifo0);
+	bdx_fifo_free(priv, &priv->txf_fifo0);
 	bdx_tx_db_close(&priv->txdb);
 	/* SHORT_PKT_FIX */
 	if (priv->b0_len) {
@@ -3124,21 +3000,21 @@ static void bdx_tx_free(struct bdx_priv *priv)
  */
 static void bdx_tx_push_desc(struct bdx_priv *priv, void *data, int size)
 {
-	struct txd_fifo *f = &priv->txd_fifo0;
-	int i = f->m.memsz - f->m.wptr;
+	struct fifo *f = &priv->txd_fifo0;
+	int i = f->memsz - f->wptr;
 
 	if (size == 0)
 		return;
 
 	if (i > size) {
-		memcpy(f->m.va + f->m.wptr, data, size);
-		f->m.wptr += size;
+		memcpy(f->va + f->wptr, data, size);
+		f->wptr += size;
 	} else {
-		memcpy(f->m.va + f->m.wptr, data, i);
-		f->m.wptr = size - i;
-		memcpy(f->m.va, data + i, f->m.wptr);
+		memcpy(f->va + f->wptr, data, i);
+		f->wptr = size - i;
+		memcpy(f->va, data + i, f->wptr);
 	}
-	WRITE_REG(priv, f->m.reg_WPTR, f->m.wptr & TXF_WPTR_WR_PTR);
+	WRITE_REG(priv, f->reg_WPTR, f->wptr & TXF_WPTR_WR_PTR);
 }
 
 /* bdx_tx_push_desc_safe - Push descriptor to TxD fifo in a safe way.
@@ -3450,6 +3326,7 @@ static void __init bdx_init_net_device(struct net_device *ndev,
 	ndev->vlan_features = (NETIF_F_IP_CSUM |
 			       NETIF_F_SG |
 			       NETIF_F_TSO | NETIF_F_GRO | NETIF_F_RXHASH);
+	ndev->hw_features |= ndev->features;
 	ndev->min_mtu = ETH_ZLEN;
 	ndev->max_mtu = BDX_MAX_MTU;
 }
@@ -3534,7 +3411,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 
 	nic->port_num = bdx_get_ports_by_id(pdev->vendor, pdev->device);
 	print_hw_id(pdev);
-	bdx_hw_reset_direct(pdev, nic->regs);
+	bdx_hw_reset(pdev, nic->regs);
 
 	nvec = pci_alloc_irq_vectors(pdev, 1, nvec, PCI_IRQ_MSI);
 	if (nvec < 0) {
@@ -3549,19 +3426,18 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	}
 
 	bdx_init_net_device(ndev, pciaddr, regionSize, pdev);
+	bdx_ethtool_ops(ndev);	/* Ethtool interface */
 
 	/************** PRIV ****************/
 	priv = nic->priv = netdev_priv(ndev);
 	memset(priv, 0, sizeof(struct bdx_priv));
 	priv->drv_name = BDX_DRV_NAME;
 	priv->pBdxRegs = nic->regs;
-	priv->port = 0;
 	priv->pdev = pdev;
 	priv->ndev = ndev;
 	priv->nic = nic;
-	priv->msg_enable = BDX_DEF_MSG_ENABLE;
 	priv->deviceId = pdev->device;
-	LUXOR__NAPI_ADD(ndev, &priv->napi, bdx_poll, 64);
+	netif_napi_add(ndev, &priv->napi, bdx_poll);
 
 	if ((readl(nic->regs + FPGA_VER) & 0xFFF) == 308) {
 		dev_dbg(&ndev->dev, "HW statistics not supported\n");
@@ -3580,8 +3456,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		goto err_out_iomap;
 	}
 
-	bdx_ethtool_ops(ndev);	/* Ethtool interface */
-
 	/* Initialize fifo sizes. */
 	priv->txd_size = 3;
 	priv->txf_size = 3;
@@ -3592,14 +3466,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	/* Initialize the initial coalescing registers. */
 	priv->rdintcm = INT_REG_VAL(0x20, 1, 4, 12);
 	priv->tdintcm = INT_REG_VAL(0x20, 1, 0, 12);
-	priv->state = BDX_STATE_HW_STOPPED;
-	/*
-	 * ndev->xmit_lock spinlock is not used.
-	 * Private priv->tx_lock is used for synchronization
-	 * between transmit and TX irq cleanup.  In addition
-	 * set multicast list callback has to use priv->tx_lock.
-	 */
-	ndev->hw_features |= ndev->features;
 
 	if (bdx_read_mac(priv)) {
 		dev_err(&pdev->dev, "load MAC address failed\n");
@@ -3610,7 +3476,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "register_netdev failed\n");
 		goto err_out_free;
 	}
-	bdx_reset(priv);
+	bdx_hw_reset(priv->pdev, priv->nic->regs);
 
 	/*Set GPIO[9:0] to output 0 */
 
@@ -3635,9 +3501,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	print_eth_id(ndev);
 
 	bdx_scan_pci();
-#ifdef TN40_MEMLOG
-	memLogInit();
-#endif
 
 	return 0;
 err_out_free:
@@ -3706,8 +3569,8 @@ static const char
 	"OutOctects",		/* 0x73F0 */
 };
 
-int bdx_get_link_ksettings(struct net_device *netdev,
-			   struct ethtool_link_ksettings *cmd)
+static int bdx_get_link_ksettings(struct net_device *netdev,
+				  struct ethtool_link_ksettings *cmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
@@ -3725,8 +3588,8 @@ int bdx_get_link_ksettings(struct net_device *netdev,
 
 }
 
-int bdx_set_link_ksettings(struct net_device *netdev,
-			   const struct ethtool_link_ksettings *cmd)
+static int bdx_set_link_ksettings(struct net_device *netdev,
+				  const struct ethtool_link_ksettings *cmd)
 {
 	struct bdx_priv *priv = netdev_priv(netdev);
 
@@ -3877,8 +3740,7 @@ static inline int bdx_tx_fifo_size_to_packets(int tx_size)
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 static void
-bdx_get_ringparam(struct net_device *netdev,
-		  struct ethtool_ringparam *ring)
+bdx_get_ringparam(struct net_device *netdev, struct ethtool_ringparam *ring)
 #else
 static void
 bdx_get_ringparam(struct net_device *netdev,
@@ -3904,8 +3766,7 @@ bdx_get_ringparam(struct net_device *netdev,
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 static int
-bdx_set_ringparam(struct net_device *netdev,
-		  struct ethtool_ringparam *ring)
+bdx_set_ringparam(struct net_device *netdev, struct ethtool_ringparam *ring)
 #else
 static int
 bdx_set_ringparam(struct net_device *netdev,
@@ -3981,8 +3842,8 @@ static int bdx_get_sset_count(struct net_device *netdev, int stringset)
 
 	switch (stringset) {
 	case ETH_SS_STATS:
-		BDX_ASSERT(ARRAY_SIZE(bdx_stat_names) !=
-			   sizeof(struct bdx_stats) / sizeof(u64));
+		WARN_ON(ARRAY_SIZE(bdx_stat_names) !=
+			sizeof(struct bdx_stats) / sizeof(u64));
 		return ((priv->stats_flag) ? ARRAY_SIZE(bdx_stat_names) : 0);
 	default:
 		return -EINVAL;
@@ -4216,14 +4077,14 @@ static int bdx_resume(struct device *dev)
 		pci_restore_state(pdev);
 		rc = pci_save_state(pdev);
 		netdev_dbg(priv->ndev, "pci_save_state = %d\n", rc);
-		setMDIOSpeed(priv, priv->phy_ops.mdio_speed);
+		bdx_mdio_set_speed(priv, priv->phy_ops.mdio_speed);
 		if (priv->phy_ops.mdio_reset(priv, priv->phy_mdio_port,
 					     priv->phy_type) != 0) {
 			netdev_err(priv->ndev,
 				   "bdx_resume() failed to load PHY");
 			break;
 		}
-		if (bdx_reset(priv) != 0) {
+		if (bdx_hw_reset(priv->pdev, priv->nic->regs) != 0) {
 			netdev_err(priv->ndev,
 				   "bdx_resume() bdx_reset failed\n");
 			break;
