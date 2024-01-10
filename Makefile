@@ -116,22 +116,10 @@ ifndef OPT_PHYS
 else
 	EXTRA_CFLAGS += $(OPT_PHYS)	
 endif
-#
-# Trace
-#         
-ifeq ($(TRACE),YES)
-	DRV_OBJS+= trace.o
-	EXTRA_CFLAGS += -D_TRACE_LOG_
-endif
-#
-# memLog
-#         
-ifeq ($(MEMLOG),YES)
-	DRV_OBJS+= memLog.o
-	EXTRA_CFLAGS += -DTN40_MEMLOG
-endif
+
 obj-m += $(DRV_NAME).o
 $(DRV_NAME)-objs := $(DRV_OBJS)
+
 #
 # Check existance of kernel build directory
 #

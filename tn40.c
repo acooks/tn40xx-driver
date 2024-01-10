@@ -188,102 +188,6 @@ static int bdx_init_rss(struct bdx_priv *priv)
 #define    bdx_init_rss(priv)
 #endif
 
-#if defined(TN40_DEBUG)
-int g_dbg = 0;
-#endif
-
-#if defined(TN40_REGLOG)
-int g_regLog = 0;
-#endif
-
-#if defined (TN40_MEMLOG)
-int g_memLog = 0;
-#endif
-
-#if defined(TN40_DEBUG)
-
-void dbg_printFifo(struct fifo *m, char *fName)
-{
-	pr_debug("%s fifo:\n", fName);
-	pr_debug("WPTR 0x%x = 0x%x RPTR 0x%x = 0x%x\n",
-		 m->reg_WPTR, m->wptr, m->reg_RPTR, m->rptr);
-
-}
-
-void dbg_printRegs(struct bdx_priv *priv, char *msg)
-{
-
-	pr_debug("* %s * \n", msg);
-	pr_debug("~~~~~~~~~~~~~\n");
-	pr_debug("veneto:");
-	pr_debug("pc = 0x%x li = 0x%x ic = %d\n", READ_REG(priv, 0x2300),
-		 READ_REG(priv, 0x2310), READ_REG(priv, 0x2320));
-	dbg_printFifo(&priv->txd_fifo0, (char *)"TXD");
-	dbg_printFifo(&priv->rxf_fifo0, (char *)"RXF");
-	dbg_printFifo(&priv->rxd_fifo0, (char *)"RXD");
-	pr_debug("~~~~~~~~~~~~~\n");
-
-}
-
-void dbg_printPBL(struct pbl *pbl)
-{
-	pr_debug("pbl: len %u pa_lo 0x%x pa_hi 0x%x\n", pbl->len, pbl->pa_lo,
-		 pbl->pa_hi);
-
-}
-
-void dbg_printPkt(char *pkt, u16 len)
-{
-	int i;
-
-	pr_info("RX: len=%d\n", len);
-	for (i = 0; i < len; i = i + 16)
-		pr_err
-		    ("%.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x ",
-		     (0xff & pkt[i]), (0xff & pkt[i + 1]), (0xff & pkt[i + 2]),
-		     (0xff & pkt[i + 3]), (0xff & pkt[i + 4]),
-		     (0xff & pkt[i + 5]), (0xff & pkt[i + 6]),
-		     (0xff & pkt[i + 7]), (0xff & pkt[i + 8]),
-		     (0xff & pkt[i + 9]), (0xff & pkt[i + 10]),
-		     (0xff & pkt[i + 11]), (0xff & pkt[i + 12]),
-		     (0xff & pkt[i + 13]), (0xff & pkt[i + 14]),
-		     (0xff & pkt[i + 15]));
-	pr_info("\n");
-
-}
-
-void dbg_printSkb(struct sk_buff *skb)
-{
-/*
-DBG("SKB: len=%d data_len=%d, truesize=%d head=%p "
-	"data=%p end=0x%x page=%p page_offset=%d size=%d"
-	"nr_frags=%d\n",
-	skb->len, skb->data_len, skb->truesize,
-	skb->head, skb->data, skb->end,
-	skb_shinfo(skb)->frags[0].page.p ,
-	skb_shinfo(skb)->frags[0].page_offset,
-	skb_shinfo(skb)->frags[0].size,
-	skb_shinfo(skb)->nr_frags) ;
-*/
-}
-
-void dbg_printIoctl(void)
-{
-	pr_info
-	    ("DBG_ON %d, DBG_OFF %d, DBG_SUSPEND %d, DBG_RESUME %d DBG_PRINT_PAGE_TABLE %d\n",
-	     DBG_START_DBG, DBG_STOP_DBG, DBG_SUSPEND, DBG_RESUME,
-	     DBG_PRINT_PAGE_TABLE);
-
-}
-
-#else
-#define dbg_printRegs(priv, msg)
-#define dbg_printPBL(pbl)
-#define dbg_printFifo(m, fName)
-#define dbg_printPkt(pkt)
-#define dbg_printIoctl()
-#endif
-
 #ifdef TN40_THUNDERBOLT
 
 u32 tbReadReg(struct bdx_priv *priv, u32 reg)
@@ -303,25 +207,6 @@ u32 tbReadReg(struct bdx_priv *priv, u32 reg)
 
 }
 
-#endif
-
-#ifdef REGLOG
-int g_regLog = 0;
-u32 bdx_readl(struct bdx_priv *priv, u32 reg)
-{
-
-	u32 val;
-#ifdef TN40_THUNDERBOLT
-	val = tbReadReg(priv, reg);
-#else
-	val = readl(priv->pBdxRegs + reg);
-#endif
-	if (g_regLog) {
-		pr_info("regR 0x%x = 0x%x\n", (u32) (((u64) reg) & 0xFFFF),
-			val);
-	}
-	return val;
-}
 #endif
 
 /*************************************************************************
@@ -1364,11 +1249,6 @@ static void __init bdx_firmware_endianess(void)
 }
 #endif
 
-static int bdx_range_check(struct bdx_priv *priv, u32 offset)
-{
-	return ((offset > (u32) (BDX_REGS_SIZE / priv->nic->port_num)) ?
-		-EINVAL : 0);
-}
 
 /*
  * __bdx_vlan_rx_vid - Private helper function for adding/killing VLAN vid
@@ -1677,14 +1557,12 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 static inline int bdx_rxdb_alloc_elem(struct rxdb *db)
 {
 	WARN_ON(db->top <= 0);
-	TN40_ASSERT((db->top > 0), "top %d\n", db->top);
 	return db->stack[--(db->top)];
 }
 
 static inline void *bdx_rxdb_addr_elem(struct rxdb *db, unsigned n)
 {
 	WARN_ON((n >= (unsigned)db->nelem));
-	TN40_ASSERT((n < (unsigned)db->nelem), "n %d nelem %d\n", n, db->nelem);
 	return db->elems + n;
 }
 
@@ -1710,47 +1588,6 @@ static void bdx_rx_vlan(struct bdx_priv *priv, struct sk_buff *skb,
 		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
 				       le16_to_cpu(GET_RXD_VLAN_TCI(rxd_vlan)));
 	}
-}
-
-static void dbg_printRxPage(char newLine, struct bdx_page *bdx_page)
-{
-	if (g_dbg) {
-		if (newLine == '\n') {
-			printk("\n");
-		}
-		if (bdx_page) {
-			printk(KERN_CONT "bxP %p P %p C %d bxC %d R %d %c\n",
-			       bdx_page, bdx_page->page,
-			       page_count(bdx_page->page), bdx_page->ref_count,
-			       bdx_page->reuse_tries, bdx_page->status);
-		} else {
-			printk(KERN_CONT "NULL page\n");
-		}
-	}
-}
-
-static void dbg_printRxPageTable(struct bdx_priv *priv)
-{
-	int j;
-	struct bdx_page *bdx_page;
-	if (g_dbg && priv->rx_page_table.bdx_pages) {
-		printk("rx_page_table\n");
-		printk("=============\n");
-		printk("nPages %d pSize %d buf size %d bufs in page %d\n",
-		       priv->rx_page_table.nPages,
-		       priv->rx_page_table.page_size,
-		       priv->rx_page_table.buf_size,
-		       priv->rx_page_table.nBufInPage);
-		printk("nFrees %d max_frees %d\n", priv->rx_page_table.nFrees,
-		       priv->rx_page_table.max_frees);
-		for (j = 0; j < priv->rx_page_table.nPages; j++) {
-			bdx_page = &priv->rx_page_table.bdx_pages[j];
-			printk("%3d. ", j);
-			dbg_printRxPage(0, bdx_page);
-		}
-		printk("\n");
-	}
-
 }
 
 static int bdx_rx_set_page_size(struct bdx_priv *priv, int buf_size,
@@ -1894,7 +1731,6 @@ static void bdx_rx_free_pages(struct bdx_priv *priv)
 {
 	int j;
 
-	dbg_printRxPageTable(priv);
 	if (priv->rx_page_table.bdx_pages != NULL) {
 		for (j = 0; j < priv->rx_page_table.nPages; j++) {
 			bdx_rx_free_page(priv,
@@ -1925,7 +1761,6 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 			    (page_count(((struct bdx_page *)pos)->page) == 2)) {
 				rPage = ((struct bdx_page *)pos);
 				netdev_dbg(priv->ndev, "nLoops %d ", nLoops);
-				dbg_printRxPage(0, rPage);
 				list_del(pos);
 				rPage->status = ' ';
 				priv->rx_page_table.nFrees -= 1;
@@ -1945,7 +1780,6 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 			netdev_dbg(priv->ndev,
 				   "Replacing - loops %d nFrees %d\n", nLoops,
 				   priv->rx_page_table.nFrees);
-			dbg_printRxPage('\n', firstPage);
 			bdx_rx_free_bdx_page(priv, firstPage);
 			if (bdx_rx_alloc_page(priv, firstPage) == 0) {
 				rPage = firstPage;
@@ -2193,7 +2027,6 @@ static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 		   f->reg_RPTR, READ_REG(priv, f->reg_RPTR));
 	netdev_dbg(priv->ndev, "READ_REG  0x%04x f->reg_WPTR=0x%x\n",
 		   f->reg_WPTR, READ_REG(priv, f->reg_WPTR));
-	dbg_printFifo(&priv->rxf_fifo0, (char *)"RXF");
 
 }
 
@@ -2623,8 +2456,6 @@ inline void bdx_setPbl(struct pbl *pbl, dma_addr_t dmaAddr, int len)
 	pbl->len = CPU_CHIP_SWAP32(len);
 	pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(dmaAddr));
 	pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(dmaAddr));
-	dbg_printPBL(pbl);
-
 }
 
 static inline void bdx_setTxdb(struct txdb *db, dma_addr_t dmaAddr, int len)
@@ -2794,7 +2625,6 @@ static int bdx_tx_transmit(struct sk_buff *skb, struct net_device *ndev)
 	unsigned int pkt_len;
 	struct txd_desc *txdd;
 	int nr_frags, len;
-	DBG_OFF;
 
 	/* Build tx descriptor */
 	WARN_ON(f->wptr >= f->memsz);	/* started with valid wptr */
@@ -3059,206 +2889,11 @@ static void bdx_tx_push_desc_safe(struct bdx_priv *priv, void *data, int size)
 
 }
 
-static int bdx_ioctl_priv(struct net_device *ndev, struct ifreq *ifr, int cmd)
-{
-	struct bdx_priv *priv = netdev_priv(ndev);
-	tn40_ioctl_t tn40_ioctl;
-	int error;
-	u16 dev, addr;
-
-	netdev_dbg(ndev, "jiffies =%ld cmd =%d\n", jiffies, cmd);
-	if (cmd != SIOCDEVPRIVATE) {
-		error =
-		    copy_from_user(&tn40_ioctl, ifr->ifr_data,
-				   sizeof(tn40_ioctl));
-		if (error) {
-			netdev_err(ndev, "cant copy from user\n");
-			return error;
-		}
-		netdev_dbg(ndev, "%d 0x%x 0x%x 0x%p\n", tn40_ioctl.data[0],
-			   tn40_ioctl.data[1], tn40_ioctl.data[2],
-			   tn40_ioctl.buf);
-	}
-	if (!capable(CAP_SYS_RAWIO))
-		return -EPERM;
-
-	switch (tn40_ioctl.data[0]) {
-	case OP_INFO:
-		switch (tn40_ioctl.data[1]) {
-		case 1:
-			tn40_ioctl.data[2] = 1;
-			break;
-		case 2:
-			tn40_ioctl.data[2] = priv->phy_mdio_port;
-			break;
-		default:
-			tn40_ioctl.data[2] = 0xFFFFFFFF;
-			break;
-		}
-		error =
-		    copy_to_user(ifr->ifr_data, &tn40_ioctl,
-				 sizeof(tn40_ioctl));
-		if (error)
-			return error;
-		break;
-
-	case OP_READ_REG:
-		error = bdx_range_check(priv, tn40_ioctl.data[1]);
-		if (error < 0)
-			return error;
-		tn40_ioctl.data[2] = READ_REG(priv, tn40_ioctl.data[1]);
-		netdev_dbg(ndev, "read_reg(0x%x)=0x%x (dec %d)\n",
-			   tn40_ioctl.data[1], tn40_ioctl.data[2],
-			   tn40_ioctl.data[2]);
-		error =
-		    copy_to_user(ifr->ifr_data, &tn40_ioctl,
-				 sizeof(tn40_ioctl));
-		if (error)
-			return error;
-		break;
-
-	case OP_WRITE_REG:
-		error = bdx_range_check(priv, tn40_ioctl.data[1]);
-		if (error < 0)
-			return error;
-		WRITE_REG(priv, tn40_ioctl.data[1], tn40_ioctl.data[2]);
-		break;
-
-	case OP_MDIO_READ:
-		if (priv->phy_mdio_port == 0xFF)
-			return -EINVAL;
-		dev = (u16) (0xFFFF & (tn40_ioctl.data[1] >> 16));
-		addr = (u16) (0xFFFF & tn40_ioctl.data[1]);
-		tn40_ioctl.data[2] = 0xFFFF & PHY_MDIO_READ(priv, dev, addr);
-		error =
-		    copy_to_user(ifr->ifr_data, &tn40_ioctl,
-				 sizeof(tn40_ioctl));
-		if (error)
-			return error;
-		break;
-
-	case OP_MDIO_WRITE:
-		if (priv->phy_mdio_port == 0xFF)
-			return -EINVAL;
-		dev = (u16) (0xFFFF & (tn40_ioctl.data[1] >> 16));
-		addr = (u16) (0xFFFF & tn40_ioctl.data[1]);
-		PHY_MDIO_WRITE(priv, dev, addr, (u16) (tn40_ioctl.data[2]));
-		break;
-
-#ifdef _TRACE_LOG_
-	case op_TRACE_ON:
-		traceOn();
-		break;
-
-	case op_TRACE_OFF:
-		traceOff();
-		break;
-
-	case op_TRACE_ONCE:
-		traceOnce();
-		break;
-
-	case op_TRACE_PRINT:
-		tracePrint();
-		break;
-#endif
-#ifdef TN40_MEMLOG
-	case OP_MEMLOG_DMESG:
-		memLogDmesg();
-		break;
-
-	case OP_MEMLOG_PRINT:
-		{
-			char *buf;
-			uint buf_size;
-			unsigned long bytes;
-
-			error = 0;
-			buf = memLogGetLine(&buf_size);
-			if (buf != NULL) {
-
-				tn40_ioctl.data[2] =
-				    min(tn40_ioctl.data[1], buf_size);
-				bytes =
-				    copy_to_user(ifr->ifr_data, &tn40_ioctl,
-						 sizeof(tn40_ioctl));
-				bytes =
-				    copy_to_user(tn40_ioctl.buf, buf,
-						 tn40_ioctl.data[2]);
-				netdev_dbg(ndev,
-					   "copy_to_user %p %u return %lu\n",
-					   tn40_ioctl.buf, tn40_ioctl.data[2],
-					   bytes);
-			} else {
-				netdev_dbg
-				    (ndev,
-				     "=================== EOF =================\n");
-				error = -EIO;
-			}
-			return error;
-			break;
-		}
-#endif
-#ifdef TN40_DEBUG
-	case OP_DBG:
-		switch (tn40_ioctl.data[1]) {
-#ifdef _DRIVER_RESUME_DBG
-
-			pm_message_t pmMsg = { 0 };
-
-		case DBG_SUSPEND:
-			bdx_suspend(priv->pdev, pmMsg);
-			bdx_resume(priv->pdev);
-			break;
-
-		case DBG_RESUME:
-			bdx_resume(priv->pdev);
-			break;
-#endif
-		case DBG_START_DBG:
-			DBG_ON;
-			break;
-
-		case DBG_STOP_DBG:
-			DBG_OFF;
-			break;
-
-		case DBG_PRINT_PAGE_TABLE:
-			dbg_printRxPageTable(priv);
-			break;
-
-		default:
-			dbg_printIoctl();
-			break;
-
-		}
-		break;
-#endif /* TN40_DEBUG */
-
-	default:
-		return -EOPNOTSUPP;
-	}
-
-	return 0;
-
-}
-
-static int bdx_ioctl(struct net_device *ndev, struct ifreq *ifr, int cmd)
-{
-
-	if (cmd > SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + 15))
-		return bdx_ioctl_priv(ndev, ifr, cmd);
-	else
-		return -EOPNOTSUPP;
-
-}
-
 static const struct net_device_ops bdx_netdev_ops = {
 	.ndo_open = bdx_open,
 	.ndo_stop = bdx_close,
 	.ndo_start_xmit = bdx_tx_transmit,
 	.ndo_validate_addr = eth_validate_addr,
-	.ndo_do_ioctl = bdx_ioctl,
 	.ndo_set_rx_mode = bdx_setmulti,
 	.ndo_get_stats = bdx_get_stats,
 	.ndo_change_mtu = bdx_change_mtu,
@@ -4231,7 +3866,6 @@ static int __init bdx_module_init(void)
 #ifdef __BIG_ENDIAN
 	bdx_firmware_endianess();
 #endif
-	traceInit();
 	init_txd_sizes();
 	print_driver_id();
 	return pci_register_driver(&bdx_pci_driver);

@@ -35,7 +35,6 @@
 #include <linux/vmalloc.h>
 #include <linux/version.h>
 #include <asm/byteorder.h>
-#include "tn40_ioctl.h"
 
 #ifdef _DRIVER_RESUME_
 #undef __init
@@ -53,96 +52,6 @@
 /*#define _EEE_ */
 #define TN40_THUNDERBOLT
 /*#define TN40_PTP */
-/*
- * Trace log
- */
-#ifdef _TRACE_LOG_
-#include "trace.h"
-#else
-#define traceInit()
-#define traceOn()
-#define traceOff()
-#define traceOnce()
-#define tracePrint()
-#define traceAdd(loc, val)
-#endif
-/* Debugging Macros */
-
-#define TN40_ASSERT(x, fmt, args...) if (!(x)) printk(KERN_ERR  BDX_DRV_NAME" ASSERT : ""%s:%-5d: " fmt, __func__, __LINE__, ## args)
-
-#define TN40_DEBUG
-
-/*#define REGLOG */
-#define WARNING
-
-#ifdef WARNING
-#define WRN(fmt, args...)   if (g_dbg)printk(KERN_ERR  BDX_DRV_NAME": " fmt,  ## args)
-#else
-#define WRN(fmt, args...)
-#endif
-/*                              M E M L O G */
-#ifdef TN40_MEMLOG
-#include "memLog.h"
-extern int g_memLog;
-#define MEMLOG_ON							g_memLog = 1
-#define MEMLOG1_ON							g_memLog = 2
-#define MEMLOG_OFF							g_memLog = 0
-/*#define DBG(arg...)                                   if (g_memLog) memLog(TN40_DRV_NAME": " arg) */
-
-#else
-#define MEMLOG_ON
-#define MEMLOG1_ON
-#define MEMLOG_OFF
-#define memLog(args, ...)
-#define memLogDmesg()
-#define memLogGetLine(x) (0)
-#define memLogPrint()
-#endif
-/*                              D E B U G */
-
-#if defined(TN40_DEBUG)
-extern int g_dbg;
-#define DBG_ON								g_dbg = 1
-
-#define DBG_OFF								g_dbg = 0
-#else
-#define DBG_ON
-#define DBG_OFF
-#endif
-
-#if defined(TN40_DEBUG) && defined(TN40_MEMLOG)
-
-#elif defined(TN40_MEMLOG)
-
-#elif defined(TN40_DEBUG)
-
-#else
-
-#endif
-
-#ifdef REGLOG
-extern int g_regLog;
-#define REGLOG_ON							g_regLog = 1
-#define REGLOG_OFF							g_regLog = 0
-u32 bdx_readl(void *base, u32 reg);
-#define READ_REG(pp, reg)     bdx_readl(pp->pBdxRegs, reg)
-#define WRITE_REG(pp, reg, val) { \
-  if (g_regLog) MSG("regW 0x%x 0x%x\n", reg, val );\
-  writel(val, pp->pBdxRegs + reg); \
-}
-#else
-#define REGLOG_ON
-#define REGLOG_OFF
-#ifdef TN40_THUNDERBOLT
-struct bdx_priv;
-u32 tbReadReg(struct bdx_priv *priv, u32 reg);
-#define READ_REG(pp, reg)     tbReadReg(pp, reg)
-#else
-#define READ_REG(pp, reg)     readl(pp->pBdxRegs + reg)
-#endif
-#define WRITE_REG(pp, reg, val)   writel(val, pp->pBdxRegs + reg)
-
-#endif
 
 #define TEHUTI_VID  			0x1FC9
 #define DLINK_VID  				0x1186
@@ -153,6 +62,11 @@ u32 tbReadReg(struct bdx_priv *priv, u32 reg);
 
 #define MDIO_SPEED_1MHZ 		(1)
 #define MDIO_SPEED_6MHZ			(6)
+
+struct bdx_priv;
+u32 tbReadReg(struct bdx_priv *priv, u32 reg);
+#define READ_REG(pp, reg)     tbReadReg(pp, reg)
+#define WRITE_REG(pp, reg, val)   writel(val, pp->pBdxRegs + reg)
 
 enum LOAD_FW {
 	NO_FW_LOAD = 0,
@@ -193,12 +107,10 @@ struct bdx_device_descr {
 	char *name;
 };
 
-#define BDX_DEF_MSG_ENABLE  (NETIF_MSG_DRV   | \
-                 NETIF_MSG_PROBE | \
-                 NETIF_MSG_LINK)
 
 /* RX copy break size */
 #define BDX_COPYBREAK     	257
+
 /*
  * netdev tx queue len for Luxor. The default value is 1000.
  * ifconfig eth1 txqueuelen 3000 - to change it at runtime.
