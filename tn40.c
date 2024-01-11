@@ -1814,12 +1814,6 @@ static void bdx_rx_reuse_page(struct bdx_priv *priv, struct rx_map *dm)
 
 }
 
-static void bdx_rx_put_page(struct bdx_priv *priv, struct rx_map *dm)
-{
-	/* DO NOTHING */
-
-}
-
 static void bdx_rx_set_dm_page(register struct rx_map *dm,
 			       struct bdx_page *bdx_page)
 {
@@ -1895,11 +1889,6 @@ static void bdx_rx_free_buffers(struct bdx_priv *priv, struct rxdb *db,
 				dma_unmap_single(&priv->pdev->dev, dm->dma,
 						 f->pktsz, DMA_FROM_DEVICE);
 				dev_kfree_skb(dm->skb);
-			} else {
-				struct bdx_page *bdx_page = dm->bdx_page;
-				if (bdx_page) {
-					bdx_rx_put_page(priv, dm);
-				}
 			}
 		}
 	}
