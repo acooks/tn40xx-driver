@@ -328,7 +328,6 @@ struct bdx_priv {
 	struct fifo rxd_fifo0;
 	struct fifo rxf_fifo0;
 	struct rxdb *rxdb0;	/* Rx dbs to store skb pointers */
-	int napi_stop;
 	struct vlan_group *vlgrp;
 	/* Tx FIFOs: 1 for data desc, 1 for empty (acks) desc */
 	struct fifo txd_fifo0;
@@ -353,7 +352,6 @@ struct bdx_priv {
 	u32 rdintcm;
 	u32 tdintcm;
 	u16 id;
-	u16 count;
 	u32 isr_mask;
 	int link_speed;		/* 0- no link or SPEED_100 SPEED_1000 SPEED_10000 */
 	u32 link_loop_cnt;
@@ -363,7 +361,6 @@ struct bdx_priv {
 	u32 b0_len;
 	dma_addr_t b0_dma;	/* Physical address of buffer */
 	char *b0_va;		/* Virtual address of buffer */
-	char *drv_name;		/* device driver name */
 	u32 errmsg_count;
 	/* SHORT_PKT_FIX end */
 	u16 deviceId;

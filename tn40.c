@@ -3066,7 +3066,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	/************** PRIV ****************/
 	priv = nic->priv = netdev_priv(ndev);
 	memset(priv, 0, sizeof(struct bdx_priv));
-	priv->drv_name = BDX_DRV_NAME;
 	priv->pBdxRegs = nic->regs;
 	priv->pdev = pdev;
 	priv->ndev = ndev;
