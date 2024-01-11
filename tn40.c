@@ -2440,6 +2440,13 @@ static struct {
 	u16 qwords;		/* qword = 64 bit */
 } txd_sizes[MAX_PBL];
 
+static inline void bdx_set_pbl(struct pbl *pbl, dma_addr_t dma_addr, int len)
+{
+	pbl->len = CPU_CHIP_SWAP32(len);
+	pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(dma_addr));
+	pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(dma_addr));
+}
+
 /* txdb_map_skb - Create and store DMA mappings for skb's data blocks.
  *
  * @priv - NIC private structure
@@ -2451,13 +2458,6 @@ static struct {
  * caller to make sure that there is enough space in the txdb. The last
  * element holds a pointer to skb itself and is marked with a zero length.
  */
-inline void bdx_setPbl(struct pbl *pbl, dma_addr_t dmaAddr, int len)
-{
-	pbl->len = CPU_CHIP_SWAP32(len);
-	pbl->pa_lo = CPU_CHIP_SWAP32(L32_64(dmaAddr));
-	pbl->pa_hi = CPU_CHIP_SWAP32(H32_64(dmaAddr));
-}
-
 static inline void bdx_setTxdb(struct txdb *db, dma_addr_t dmaAddr, int len)
 {
 	db->wptr->len = len;
@@ -2491,7 +2491,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 	dmaAddr =
 	    dma_map_single(&priv->pdev->dev, skb->data, len, DMA_TO_DEVICE);
 	bdx_setTxdb(db, dmaAddr, len);
-	bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
+	bdx_set_pbl(pbl++, db->wptr->addr.dma, db->wptr->len);
 	*pkt_len = db->wptr->len;
 
 	/* remaining frags */
@@ -2504,7 +2504,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 				     size, DMA_TO_DEVICE);
 		bdx_tx_db_inc_wptr(db);
 		bdx_setTxdb(db, dmaAddr, size);
-		bdx_setPbl(pbl++, db->wptr->addr.dma, db->wptr->len);
+		bdx_set_pbl(pbl++, db->wptr->addr.dma, db->wptr->len);
 		*pkt_len += db->wptr->len;
 	}
 	if (skb->len < 60) {
