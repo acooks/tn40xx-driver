@@ -22,7 +22,6 @@ JUMBO_PHYS    := -DPHY_QT2025 -DPHY_TLK10232 -DPHY_AQR105 -DPHY_MUSTANG
 
 DRV_NAME      := tn40xx
 DRV_OBJS      := tn40.o CX4.o CX4_Linux.o
-RESUME 		  ?= YES
 MV88X3120_HDR := 88X3140-FW-R02-06-03.hdr
 MV88X3120_H	  := MV88X3120_phy.h
 MV88X3310_HDR := x3310fw_0_3_4_0_9445.hdr
@@ -93,17 +92,7 @@ endif
 ifeq ($(MUSTANG),YES)
 	OPT_PHYS += -DPHY_MUSTANG
 endif
-#
-# Resume
-#
-ifeq ($(RESUME),YES)
-       # RESUME=YES
-	OPT_RESUME += -D_DRIVER_RESUME_
-endif
-ifdef OPT_RESUME
-	EXTRA_CFLAGS += $(OPT_RESUME)
-	MAKE_MSG += resume supported
-endif
+
 ifeq ($(EEE), YES)
 	EXTRA_CFLAGS += -D_EEE_
 endif
@@ -133,11 +122,7 @@ endif
 all: clean headers
 	@echo Building kernel $(KVERSION) $(MAKE_MSG)
 	$(MAKE) -C $(KDIR) $(MODULE_DIR) modules 
-	@if [ -z $(OPT_RESUME) ]; then \
-		rm -f $(RESUME_FILE) > /dev/null 2>&1; \
-	else \
-		touch  $(RESUME_FILE); \
-	fi
+	touch  $(RESUME_FILE); \
 
 headers: $(MV88X3120_H) $(MV88X3310_H) $(MV88E2010_H)
 
@@ -181,9 +166,8 @@ help usage:
 	@echo "    TL=YES         - include TI phy"
 	@echo "    AQ=YES         - include Aquantia phy"
 	@echo "    MUSTANG=YES    - Mustang-200 10GbE Ethernet Adapter only"
-	@echo "    RESUME=NO      - do not support in driver system resume"
 	@echo "    EEE=YES        - support EEE"
-	@echo "    default        - phys = all, RESUME=YES, EEE=NO"
+	@echo "    default        - phys = all, EEE=NO"
 
 install: $(DRV_NAME).ko
 	rm -f $(OLDINSTDIR)/$(DRV_NAME).ko

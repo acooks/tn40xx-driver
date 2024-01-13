@@ -137,11 +137,10 @@ static inline int bdx_rxdb_available(struct rxdb *db);
 static void bdx_ethtool_ops(struct net_device *netdev);
 static int bdx_rx_alloc_pages(struct bdx_priv *priv);
 static void bdx_rx_free_pages(struct bdx_priv *priv);
-#ifdef _DRIVER_RESUME_
 
 static int bdx_suspend(struct device *dev);
 static int bdx_resume(struct device *dev);
-#endif
+
 /*#define USE_RSS */
 #if defined(USE_RSS)
 /* bdx_init_rss - Initialize RSS hash HW function.
@@ -3656,16 +3655,12 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 	pci_set_drvdata(pdev, NULL);
 	vfree(nic);
-#ifdef _DRIVER_RESUME_
 	spin_lock(&g_lock);
 	g_ndevices_loaded -= 1;
 	spin_unlock(&g_lock);
-#endif
 	pr_info("Device removed\n");
-
 }
 
-#ifdef _DRIVER_RESUME_
 
 #define PCI_PMCR 0x7C
 
@@ -3719,41 +3714,23 @@ static int bdx_resume(struct device *dev)
 	return rc;
 
 }
-#endif
 
-#ifdef _DRIVER_RESUME_
 __refdata static struct dev_pm_ops bdx_pm_ops = {
 	.suspend = bdx_suspend,
 	.resume_noirq = bdx_resume,
 	.freeze = bdx_suspend,
 	.restore_noirq = bdx_resume,
 };
-#endif
+
 __refdata static struct pci_driver bdx_pci_driver = {
 	.name = BDX_DRV_NAME,
 	.id_table = bdx_pci_tbl,
 	.probe = bdx_probe,
 	.remove = __exit_p(bdx_remove),
 	.shutdown = __exit_p(bdx_remove),
-#ifdef _DRIVER_RESUME_
 	.driver.pm = &bdx_pm_ops,
-#endif
-
 };
 
-#ifndef _DRIVER_RESUME_
-
-int bdx_no_hotplug(struct pci_dev *pdev, const struct pci_device_id *ent)
-{
-
-	dev_err
-	    (&pdev->dev,
-	     "rescan/hotplug is *NOT* supported!, please use rmmod/insmod instead\n");
-	return -1;
-
-}
-
-#endif
 
 static void __init bdx_scan_pci(void)
 {
@@ -3783,11 +3760,6 @@ static void __init bdx_scan_pci(void)
 	spin_lock(&g_lock);
 	g_ndevices_loaded += 1;
 	nLoaded = g_ndevices_loaded;
-#ifndef _DRIVER_RESUME_
-	if (g_ndevices_loaded >= g_ndevices) {	/* all loaded */
-		bdx_pci_driver.probe = bdx_no_hotplug;
-	}
-#endif
 	spin_unlock(&g_lock);
 	pr_info("detected %d cards, %d loaded\n", nDevices, nLoaded);
 
