@@ -17,7 +17,6 @@ uint bdx_force_no_phy_mode = 0;
 module_param_named(no_phy, bdx_force_no_phy_mode, int, 0644);
 MODULE_PARM_DESC(bdx_force_no_phy_mode, "no_phy=1 - force no phy mode (CX4)");
 
-__initdata static u32 g_ndevices = 0;
 __initdata static u32 g_ndevices_loaded = 0;
 __initdata spinlock_t g_lock __initdata;
 __initdata DEFINE_SPINLOCK(g_lock);
@@ -3783,7 +3782,6 @@ static void __init bdx_scan_pci(void)
 
 	}
 	spin_lock(&g_lock);
-	g_ndevices = nDevices;
 	g_ndevices_loaded += 1;
 	nLoaded = g_ndevices_loaded;
 #ifndef _DRIVER_RESUME_
