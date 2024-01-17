@@ -1246,7 +1246,6 @@ static void __init bdx_firmware_endianess(void)
 }
 #endif
 
-
 /*
  * __bdx_vlan_rx_vid - Private helper function for adding/killing VLAN vid
  *             by passing VLAN filter table to hardware
@@ -1506,7 +1505,6 @@ static struct net_device_stats *bdx_get_stats(struct net_device *ndev)
 
 static void print_rxdd(struct rxd_desc *rxdd, u32 rxd_val1, u16 len,
 		       u16 rxd_vlan);
-static void print_rxfd(struct rxf_desc *rxfd);
 
 /*************************************************************************
  *     Rx DB                                 *
@@ -1911,6 +1909,33 @@ static void bdx_rx_free(struct bdx_priv *priv)
 
 }
 
+static inline void bdx_fifo_advance_wptr(struct fifo *f)
+{
+	int delta;
+
+	f->wptr += sizeof(struct rxf_desc);
+
+	/* wrapped descriptor */
+	delta = f->wptr - f->memsz;
+	if (delta >= 0) {
+		f->wptr = delta;
+		if (delta)
+			memcpy(f->va, f->va + f->memsz, delta);
+	}
+}
+
+static inline void bdx_fifo_set_rxfd(struct fifo *f, u32 idx, struct rx_map *dm)
+{
+	register struct rxf_desc *rxfd = (struct rxf_desc *)(f->va + f->wptr);
+
+	rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO=1 BC=3 */
+	rxfd->va_lo = idx;
+	/* rxfd->va_hi is reserved, but not used */
+	rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
+	rxfd->pa_hi = CPU_CHIP_SWAP32(H32_64(dm->dma));
+	rxfd->len = CPU_CHIP_SWAP32(f->pktsz);
+}
+
 /* bdx_rx_alloc_buffers - Fill rxf fifo with new skbs.
  *
  * @priv - NIC's private structure
@@ -1927,8 +1952,7 @@ static void bdx_rx_free(struct bdx_priv *priv)
 
 static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 {
-	int dno, delta, idx;
-	register struct rxf_desc *rxfd;
+	int dno, idx;
 	register struct rx_map *dm;
 	struct rxdb *db = priv->rxdb0;
 	struct fifo *f = &priv->rxf_fifo0;
@@ -1977,32 +2001,15 @@ static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 			 */
 		}
 
-		rxfd = (struct rxf_desc *)(f->va + f->wptr);
 		idx = bdx_rxdb_alloc_elem(db);
 		dm = bdx_rxdb_addr_elem(db, idx);
 		dm->size = page_size;
 		bdx_rx_set_dm_page(dm, bdx_page);
 		dm->off = page_off;
 		dm->dma = dma + page_off;
-		netdev_dbg(priv->ndev, "dm size %d off %d dma %p\n",
-			   dm->size, dm->off, (void *)dm->dma);
+		bdx_fifo_set_rxfd(f, idx, dm);
+		bdx_fifo_advance_wptr(f);
 		page_off -= buf_size;
-
-		rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO =1 BC =3 */
-		rxfd->va_lo = idx;
-		rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
-		rxfd->pa_hi = CPU_CHIP_SWAP32(H32_64(dm->dma));
-		rxfd->len = CPU_CHIP_SWAP32(f->pktsz);
-		print_rxfd(rxfd);
-		f->wptr += sizeof(struct rxf_desc);
-		delta = f->wptr - f->memsz;
-		if (unlikely(delta >= 0)) {
-			f->wptr = delta;
-			if (delta > 0) {
-				memcpy(f->va, f->va + f->memsz, delta);
-				netdev_dbg(priv->ndev, "Wrapped descriptor\n");
-			}
-		}
 		dno--;
 	}
 	netdev_dbg(priv->ndev, "nPages %d\n", nPages);
@@ -2021,25 +2028,9 @@ static void bdx_recycle_skb(struct bdx_priv *priv, struct rxd_desc *rxdd)
 	struct rxdb *db = priv->rxdb0;
 	struct rx_map *dm = bdx_rxdb_addr_elem(db, rxdd->va_lo);
 	struct fifo *f = &priv->rxf_fifo0;
-	struct rxf_desc *rxfd = (struct rxf_desc *)(f->va + f->wptr);
-	int delta;
 
-	rxfd->info = CPU_CHIP_SWAP32(0x10003);	/* INFO=1 BC=3 */
-	rxfd->va_lo = rxdd->va_lo;
-	rxfd->pa_lo = CPU_CHIP_SWAP32(L32_64(dm->dma));
-	rxfd->pa_hi = CPU_CHIP_SWAP32(H32_64(dm->dma));
-	rxfd->len = CPU_CHIP_SWAP32(f->pktsz);
-	print_rxfd(rxfd);
-	f->wptr += sizeof(struct rxf_desc);
-	delta = f->wptr - f->memsz;
-	if (unlikely(delta >= 0)) {
-		f->wptr = delta;
-		if (delta > 0) {
-			memcpy(f->va, f->va + f->memsz, delta);
-			netdev_dbg(priv->ndev, "wrapped descriptor\n");
-		}
-	}
-
+	bdx_fifo_set_rxfd(f, rxdd->va_lo, dm);
+	bdx_fifo_advance_wptr(f);
 }
 
 static void bdx_skb_add_rx_frag(struct sk_buff *skb, int i, struct page *page,
@@ -2267,13 +2258,6 @@ static void print_rxdd(struct rxd_desc *rxdd, u32 rxd_val1, u16 len,
 		 GET_RXD_PKT_ID(rxd_val1), GET_RXD_VTAG(rxd_val1), len,
 		 GET_RXD_VLAN_ID(rxd_vlan), GET_RXD_CFI(rxd_vlan),
 		 GET_RXD_PRIO(rxd_vlan), rxdd->va_lo, rxdd->va_hi);
-}
-
-static void print_rxfd(struct rxf_desc *rxfd)
-{
-	/*  pr_debug("=== RxF desc CHIP ORDER/ENDIANESS =============\n" */
-	/*      "info 0x%x va_lo %u pa_lo 0x%x pa_hi 0x%x len 0x%x\n", */
-	/*      rxfd->info, rxfd->va_lo, rxfd->pa_lo, rxfd->pa_hi, rxfd->len); */
 }
 
 /*
