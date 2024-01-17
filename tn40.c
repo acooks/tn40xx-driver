@@ -1522,7 +1522,7 @@ static void bdx_rxdb_destroy(struct rxdb *db)
 	}
 }
 
-static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
+static struct rxdb *bdx_rxdb_create(int nelem, u16 pkt_size)
 {
 	struct rxdb *db;
 	int i;
@@ -1542,7 +1542,7 @@ static struct rxdb *bdx_rxdb_create(int nelem, u16 pktSize)
 		db->stack[i] = nelem - i - 1;
 	}
 
-	db->pkt = vzalloc(pktSize);
+	db->pkt = vzalloc(pkt_size);
 	if (!db->pkt) {
 		bdx_rxdb_destroy(db);
 		db = NULL;
@@ -2455,7 +2455,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 				 unsigned int *pkt_len)
 {
 	skb_frag_t *frag;
-	dma_addr_t dmaAddr;
+	dma_addr_t dma_addr;
 	int i, len;
 	struct txdb *db = &priv->txdb;
 	struct pbl *pbl = &txdd->pbl[0];
@@ -2473,7 +2473,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 	*nr_frags = nrFrags;
 	/* initial skb */
 	len = skb->len - skb->data_len;
-	dmaAddr =
+	dma_addr =
 	    dma_map_single(&priv->pdev->dev, skb->data, len, DMA_TO_DEVICE);
 	bdx_set_txdb(db, dma_addr, len);
 	bdx_set_pbl(pbl++, db->wptr->addr.dma, db->wptr->len);
@@ -2484,7 +2484,7 @@ static inline int bdx_tx_map_skb(struct bdx_priv *priv, struct sk_buff *skb,
 
 		frag = &skb_shinfo(skb)->frags[i];
 		size = skb_frag_size(frag);
-		dmaAddr =
+		dma_addr =
 		    skb_frag_dma_map(&priv->pdev->dev, frag, 0,
 				     size, DMA_TO_DEVICE);
 		bdx_tx_db_inc_wptr(db);
