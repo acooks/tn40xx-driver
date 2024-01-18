@@ -13,13 +13,12 @@
 
 static void bdx_scan_pci(void);
 
-uint bdx_force_no_phy_mode = 0;
+static uint bdx_force_no_phy_mode = 0;
 module_param_named(no_phy, bdx_force_no_phy_mode, int, 0644);
 MODULE_PARM_DESC(bdx_force_no_phy_mode, "no_phy=1 - force no phy mode (CX4)");
 
-__initdata static u32 g_ndevices_loaded = 0;
-__initdata spinlock_t g_lock __initdata;
-__initdata DEFINE_SPINLOCK(g_lock);
+static u32 g_ndevices_loaded = 0;
+static DEFINE_SPINLOCK(g_lock);
 
 #define LDEV(_vid,_pid,_subdev,_msi,_ports,_phya,_phyb,_name)  \
     {_vid,_pid,_subdev,_msi,_ports,PHY_TYPE_##_phya,PHY_TYPE_##_phyb}
@@ -878,7 +877,7 @@ static int bdx_poll(struct napi_struct *napi, int budget)
  * semaphore register to load the FW only once.
  */
 
-static int __init bdx_fw_load(struct bdx_priv *priv)
+static int bdx_fw_load(struct bdx_priv *priv)
 {
 	int master, i;
 	int rVal = 0;
