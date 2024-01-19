@@ -1809,13 +1809,6 @@ static void bdx_rx_reuse_page(struct bdx_priv *priv, struct rx_map *dm)
 
 }
 
-static void bdx_rx_set_dm_page(register struct rx_map *dm,
-			       struct bdx_page *bdx_page)
-{
-	dm->bdx_page = bdx_page;
-
-}
-
 /* bdx_rx_init - Initialize RX all related HW and SW resources
  * @priv       - NIC private structure
  *
@@ -2004,7 +1997,7 @@ static void bdx_rx_alloc_buffers(struct bdx_priv *priv)
 		idx = bdx_rxdb_alloc_elem(db);
 		dm = bdx_rxdb_addr_elem(db, idx);
 		dm->size = page_size;
-		bdx_rx_set_dm_page(dm, bdx_page);
+		dm->bdx_page = bdx_page;
 		dm->off = page_off;
 		dm->dma = dma + page_off;
 		bdx_fifo_set_rxfd(f, idx, dm);
