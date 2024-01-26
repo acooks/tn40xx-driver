@@ -308,15 +308,12 @@ int bdx_mdio_write(struct bdx_priv *priv, int device, int port, u16 addr,
 		return -1;
 	}
 	return 0;
-
 }
 
-static void bdx_mdio_set_speed(struct bdx_priv *priv, u32 speed)
+static void bdx_mdio_set_speed(void __iomem *regs, u32 speed)
 {
-	void __iomem *regs = priv->pBdxRegs;
-	int mdio_cfg;
+	int mdio_cfg = readl(regs + regMDIO_CMD_STAT);
 
-	mdio_cfg = readl(regs + regMDIO_CMD_STAT);
 	if (1 == speed) {
 		mdio_cfg = (0x7d << 7) | 0x08;	/* 1MHz */
 	} else {
@@ -334,7 +331,7 @@ int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
 	int rVal = -1;
 
 	i = port;
-	bdx_mdio_set_speed(priv, MDIO_SPEED_1MHZ);
+	bdx_mdio_set_speed(priv->pBdxRegs, MDIO_SPEED_1MHZ);
 
 	phy_id = bdx_mdio_read(priv, 1, i, 0x0002);	/* PHY_ID_HIGH */
 	phy_id &= 0xFFFF;
@@ -446,7 +443,7 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 
 	}
 
-	bdx_mdio_set_speed(priv, priv->phy_ops.mdio_speed);
+	bdx_mdio_set_speed(priv->pBdxRegs, priv->phy_ops.mdio_speed);
 	dev_info(&priv->pdev->dev, "PHY detected on port %u ID=%X - %s\n",
 		 *port_t, i, s);
 
@@ -3680,7 +3677,7 @@ static int bdx_resume(struct device *dev)
 		pci_restore_state(pdev);
 		rc = pci_save_state(pdev);
 		netdev_dbg(priv->ndev, "pci_save_state = %d\n", rc);
-		bdx_mdio_set_speed(priv, priv->phy_ops.mdio_speed);
+		bdx_mdio_set_speed(priv->pBdxRegs, priv->phy_ops.mdio_speed);
 		if (priv->phy_ops.mdio_reset(priv, priv->phy_mdio_port,
 					     priv->phy_type) != 0) {
 			netdev_err(priv->ndev,
