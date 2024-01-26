@@ -243,7 +243,7 @@ u32 bdx_mdio_get(struct bdx_priv *priv)
  * @addr     - 16 bit address
  * returns a 16bit value or -1 for failure
  */
-int bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
+u16 bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
 {
 	void __iomem *regs = priv->pBdxRegs;
 	u32 tmp_reg, i;
@@ -270,8 +270,7 @@ int bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr)
 	}
 	tmp_reg = readl(regs + regMDIO_DATA);
 
-	return (int)(tmp_reg & 0xFFFF);
-
+	return (tmp_reg & 0xFFFF);
 }
 
 /* bdx_mdio_write - writes a 16bit word through the MDIO interface
