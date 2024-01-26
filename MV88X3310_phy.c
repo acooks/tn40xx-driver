@@ -636,9 +636,6 @@ __init enum PHY_TYPE MV88X3310_register(struct bdx_priv *priv)
 {
 	enum PHY_TYPE phyType;
 
-	priv->isr_mask =
-	    IR_RX_FREE_0 | IR_LNKCHG0 | IR_LNKCHG1 | IR_PSE | IR_TMR0 |
-	    IR_RX_DESC_0 | IR_TX_FREE_0;
 	priv->phy_ops.mdio_reset = MV88X3310_mdio_reset;
 	priv->phy_ops.link_changed = MV88X3310_link_changed;
 	priv->phy_ops.ledset = MV88X3310_leds;

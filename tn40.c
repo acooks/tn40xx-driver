@@ -446,7 +446,6 @@ static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
 
 	}
 
-	priv->isr_mask |= IR_TMR1;
 	bdx_mdio_set_speed(priv, priv->phy_ops.mdio_speed);
 	dev_info(&priv->pdev->dev, "PHY detected on port %u ID=%X - %s\n",
 		 *port_t, i, s);
@@ -3033,7 +3032,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	priv->ndev = ndev;
 	priv->nic = nic;
 	priv->deviceId = pdev->device;
-	netif_napi_add(ndev, &priv->napi, bdx_poll);
 
 	if ((readl(nic->regs + FPGA_VER) & 0xFFF) == 308) {
 		dev_dbg(&ndev->dev, "HW statistics not supported\n");
@@ -3059,9 +3057,22 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	priv->rxd_size = 3;
 	priv->rxf_size = 3;
 
-	/* Initialize the initial coalescing registers. */
+	/* Initialize the interrupt coalescing registers. */
 	priv->rdintcm = INT_REG_VAL(0x20, 1, 4, 12);
 	priv->tdintcm = INT_REG_VAL(0x20, 1, 0, 12);
+
+	/* Interrupt handling */
+	priv->isr_mask =
+	    IR_RX_FREE_0 | IR_LNKCHG0 | IR_PSE | IR_TMR0 | IR_RX_DESC_0 |
+	    IR_TX_FREE_0 | IR_TMR1;
+	switch (phy) {
+	case PHY_TYPE_MV88X3120:
+	case PHY_TYPE_MV88X3310:
+	case PHY_TYPE_MV88E2010:
+	case PHY_TYPE_AQR105:
+		priv->isr_mask |= IR_LNKCHG1;
+	}
+	netif_napi_add(ndev, &priv->napi, bdx_poll);
 
 	if (bdx_read_mac(priv)) {
 		dev_err(&pdev->dev, "load MAC address failed\n");

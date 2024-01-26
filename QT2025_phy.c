@@ -190,9 +190,6 @@ void QT2025_leds(struct bdx_priv *priv, enum PHY_LEDS_OP op)
 
 __init enum PHY_TYPE QT2025_register(struct bdx_priv *priv)
 {
-	priv->isr_mask =
-	    IR_RX_FREE_0 | IR_LNKCHG0 | IR_PSE | IR_TMR0 | IR_RX_DESC_0 |
-	    IR_TX_FREE_0;
 	priv->phy_ops.mdio_reset = QT2025_mdio_reset;
 	priv->phy_ops.link_changed = QT2025_link_changed;
 	priv->phy_ops.ledset = QT2025_leds;
