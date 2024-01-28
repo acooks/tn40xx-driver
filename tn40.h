@@ -158,7 +158,6 @@ struct bdx_device_descr {
 #define BDX_NO_UPD_PACKETS 40
 #define BDX_MAX_MTU		   (1 << 14)
 struct pci_nic {
-	int port_num;
 	void __iomem *regs;
 	struct bdx_priv *priv;
 };

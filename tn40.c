@@ -3001,7 +3001,6 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	}
 	pci_set_drvdata(pdev, nic);
 
-	nic->port_num = bdx_get_ports_by_id(pdev->vendor, pdev->device);
 	print_hw_id(pdev);
 	bdx_hw_reset(pdev, nic->regs);
 
