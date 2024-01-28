@@ -20,103 +20,95 @@ MODULE_PARM_DESC(bdx_force_no_phy_mode, "no_phy=1 - force no phy mode (CX4)");
 static u32 g_ndevices_loaded = 0;
 static DEFINE_SPINLOCK(g_lock);
 
-#define LDEV(_vid,_pid,_subdev,_msi,_ports,_phya,_phyb,_name)  \
-    {_vid,_pid,_subdev,_msi,_ports,PHY_TYPE_##_phya,PHY_TYPE_##_phyb}
 static struct bdx_device_descr bdx_dev_tbl[] = {
-	LDEV(TEHUTI_VID, 0x4010, 0x4010, 1, 1, CX4, NA, "TN4010 Clean SROM"),
-	LDEV(TEHUTI_VID, 0x4020, 0x3015, 1, 1, CX4, NA,
-	     "TN9030 10GbE CX4 Ethernet Adapter"),
-#ifdef PHY_MUSTANG
-	LDEV(TEHUTI_VID, 0x4020, 0x2040, 1, 1, CX4, NA,
-	     "Mustang-200 10GbE Ethernet Adapter"),
-#endif
-#ifdef PHY_QT2025
-	LDEV(TEHUTI_VID, 0x4022, 0x3015, 1, 1, QT2025, NA,
-	     "TN9310 10GbE SFP+ Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4022, 0x4d00, 1, 1, QT2025, NA,
-	     "D-Link DXE-810S 10GbE SFP+ Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4022, 0x8709, 1, 1, QT2025, NA,
-	     "ASUS XG-C100F 10GbE SFP+ Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4022, 0x8103, 1, 1, QT2025, NA,
-	     "Edimax 10 Gigabit Ethernet SFP+ PCI Express Adapter"),
-#endif
-#ifdef PHY_MV88X3120
-	LDEV(TEHUTI_VID, 0x4024, 0x3015, 1, 1, MV88X3120, NA,
-	     "TN9210 10GBase-T Ethernet Adapter"),
-#endif
-#ifdef PHY_MV88X3310
-	LDEV(TEHUTI_VID, 0x4027, 0x3015, 1, 1, MV88X3310, NA,
-	     "TN9710P 10GBase-T/NBASE-T Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4027, 0x8104, 1, 1, MV88X3310, NA,
-	     "Edimax 10 Gigabit Ethernet PCI Express Adapter"),
-	LDEV(TEHUTI_VID, 0x4027, 0x0368, 1, 1, MV88X3310, NA,
-	     "Buffalo LGY-PCIE-MG Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4027, 0x1546, 1, 1, MV88X3310, NA,
-	     "IOI GE10-PCIE4XG202P 10Gbase-T/NBASE-T Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4027, 0x1001, 1, 1, MV88X3310, NA,
-	     "LR-Link LREC6860BT 10 Gigabit Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4027, 0x3310, 1, 1, MV88X3310, NA,
-	     "QNAP PCIe Expansion Card"),
-#endif
-#ifdef PHY_MV88E2010
-	LDEV(TEHUTI_VID, 0x4527, 0x3015, 1, 1, MV88E2010, NA,
-	     "TN9710Q 5GBase-T/NBASE-T Ethernet Adapter"),
-#endif
-#ifdef PHY_TLK10232
-	LDEV(TEHUTI_VID, 0x4026, 0x3015, 1, 1, TLK10232, NA,
-	     "TN9610 10GbE SFP+ Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4026, 0x1000, 1, 1, TLK10232, NA,
-	     "LR-Link LREC6860AF 10 Gigabit Ethernet Adapter"),
-#endif
-#ifdef PHY_AQR105
-	LDEV(TEHUTI_VID, 0x4025, 0x2900, 1, 1, AQR105, NA,
-	     "D-Link DXE-810T 10GBase-T Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4025, 0x3015, 1, 1, AQR105, NA,
-	     "TN9510 10GBase-T/NBASE-T Ethernet Adapter"),
-	LDEV(TEHUTI_VID, 0x4025, 0x8102, 1, 1, AQR105, NA,
-	     "Edimax 10 Gigabit Ethernet PCI Express Adapter"),
-	LDEV(PROMISE_VID, 0x7203, 0x7203, 1, 1, AQR105, NA,
-	     "Promise SANLink3 T1 10 Gigabit Ethernet Adapter"),
-#endif
+	{ TEHUTI_VID, 0x4010, 0x4010, PHY_TYPE_CX4, "TN4010 Clean SROM" },
+	{ TEHUTI_VID, 0x4020, 0x3015, PHY_TYPE_CX4,
+	 "TN9030 10GbE CX4 Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4020, 0x2040, PHY_TYPE_CX4,
+	 "Mustang-200 10GbE Ethernet Adapter" },
+
+	{ TEHUTI_VID, 0x4022, 0x3015, PHY_TYPE_QT2025,
+	 "TN9310 10GbE SFP+ Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4022, 0x4d00, PHY_TYPE_QT2025,
+	 "D-Link DXE-810S 10GbE SFP+ Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4022, 0x8709, PHY_TYPE_QT2025,
+	 "ASUS XG-C100F 10GbE SFP+ Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4022, 0x8103, PHY_TYPE_QT2025,
+	 "Edimax 10 Gigabit Ethernet SFP+ PCI Express Adapter" },
+
+	{ TEHUTI_VID, 0x4024, 0x3015, PHY_TYPE_MV88X3120,
+	 "TN9210 10GBase-T Ethernet Adapter" },
+
+	{ TEHUTI_VID, 0x4027, 0x3015, PHY_TYPE_MV88X3310,
+	 "TN9710P 10GBase-T/NBASE-T Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4027, 0x8104, PHY_TYPE_MV88X3310,
+	 "Edimax 10 Gigabit Ethernet PCI Express Adapter" },
+	{ TEHUTI_VID, 0x4027, 0x0368, PHY_TYPE_MV88X3310,
+	 "Buffalo LGY-PCIE-MG Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4027, 0x1546, PHY_TYPE_MV88X3310,
+	 "IOI GE10-PCIE4XG202P 10Gbase-T/NBASE-T Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4027, 0x1001, PHY_TYPE_MV88X3310,
+	 "LR-Link LREC6860BT 10 Gigabit Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4027, 0x3310, PHY_TYPE_MV88X3310,
+	 "QNAP PCIe Expansion Card" },
+
+	{ TEHUTI_VID, 0x4527, 0x3015, PHY_TYPE_MV88E2010,
+	 "TN9710Q 5GBase-T/NBASE-T Ethernet Adapter" },
+
+	{ TEHUTI_VID, 0x4026, 0x3015, PHY_TYPE_TLK10232,
+	 "TN9610 10GbE SFP+ Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4026, 0x1000, PHY_TYPE_TLK10232,
+	 "LR-Link LREC6860AF 10 Gigabit Ethernet Adapter" },
+
+	{ TEHUTI_VID, 0x4025, 0x2900, PHY_TYPE_AQR105,
+	 "D-Link DXE-810T 10GBase-T Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4025, 0x3015, PHY_TYPE_AQR105,
+	 "TN9510 10GBase-T/NBASE-T Ethernet Adapter" },
+	{ TEHUTI_VID, 0x4025, 0x8102, PHY_TYPE_AQR105,
+	 "Edimax 10 Gigabit Ethernet PCI Express Adapter" },
+	{ PROMISE_VID, 0x7203, 0x7203, PHY_TYPE_AQR105,
+	 "Promise SANLink3 T1 10 Gigabit Ethernet Adapter" },
+
 	{ 0 }
 };
 
 static struct pci_device_id bdx_pci_tbl[] = {
 	{ TEHUTI_VID, 0x4010, TEHUTI_VID, 0x4010, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4020, TEHUTI_VID, 0x3015, 0, 0, 0 },
-#ifdef PHY_MUSTANG
+
+	/*  PHY_MUSTANG */
 	{ TEHUTI_VID, 0x4020, 0x180C, 0x2040, 0, 0, 0 },
-#endif
-#ifdef PHY_QT2025
+
+	/* PHY_QT2025 */
 	{ TEHUTI_VID, 0x4022, TEHUTI_VID, 0x3015, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4022, DLINK_VID, 0x4d00, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4022, ASUS_VID, 0x8709, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4022, EDIMAX_VID, 0x8103, 0, 0, 0 },
-#endif
-#ifdef PHY_MV88X3120
+
+	/* PHY_MV88X3120 */
 	{ TEHUTI_VID, 0x4024, TEHUTI_VID, 0x3015, 0, 0, 0 },
-#endif
-#ifdef PHY_MV88X3310
+
+	/* PHY_MV88X3310 */
 	{ TEHUTI_VID, 0x4027, TEHUTI_VID, 0x3015, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4027, EDIMAX_VID, 0x8104, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4027, BUFFALO_VID, 0x0368, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4027, 0x1546, 0x4027, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4027, 0x4C52, 0x1001, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4027, 0x1BAA, 0x3310, 0, 0, 0 },
-#endif
-#ifdef PHY_MV88E2010
+
+	/* PHY_MV88E2010 */
 	{ TEHUTI_VID, 0x4527, TEHUTI_VID, 0x3015, 0, 0, 0 },
-#endif
-#ifdef PHY_TLK10232
+
+	/* PHY_TLK10232 */
 	{ TEHUTI_VID, 0x4026, TEHUTI_VID, 0x3015, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4026, 0x4C52, 0x1000, 0, 0, 0 },
-#endif
-#ifdef PHY_AQR105
+
+	/* PHY_AQR105 */
 	{ TEHUTI_VID, 0x4025, DLINK_VID, 0x2900, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4025, TEHUTI_VID, 0x3015, 0, 0, 0 },
 	{ TEHUTI_VID, 0x4025, EDIMAX_VID, 0x8102, 0, 0, 0 },
 	{ PROMISE_VID, 0x7203, PROMISE_VID, 0x7203, 0, 0, 0 },
-#endif
+
 	{ 0 }
 };
 
@@ -140,6 +132,8 @@ static void bdx_rx_free_pages(struct bdx_priv *priv);
 
 static int bdx_suspend(struct device *dev);
 static int bdx_resume(struct device *dev);
+
+static int bdx_get_phy_by_id(int vendor, int device, int subsystem);
 
 /*#define USE_RSS */
 #if defined(USE_RSS)
@@ -321,157 +315,155 @@ static void bdx_mdio_set_speed(void __iomem *regs, u32 speed)
 	mdio_cfg |= (1 << 6);
 	writel(mdio_cfg, regs + regMDIO_CMD_STAT);
 	msleep(100);
-
 }
 
-int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port)
+/* Scan the MDIO bus for a PHY ID.
+ * return the PHY ID or 0 if none were found.
+ */
+static u32 bdx_mdio_scan_phy_id(struct bdx_priv *priv)
 {
-	int phy_id, i;
-	int rVal = -1;
+	int i;
+	u16 phy_id_hi, phy_id_lo;
+	u16 phy_id_addr_hi = 0x0002;
+	u16 phy_id_addr_lo = 0x0003;
 
-	i = port;
-	bdx_mdio_set_speed(priv->pBdxRegs, MDIO_SPEED_1MHZ);
-
-	phy_id = bdx_mdio_read(priv, 1, i, 0x0002);	/* PHY_ID_HIGH */
-	phy_id &= 0xFFFF;
 	for (i = 0; i < 32; i++) {
-		msleep(10);
-		dev_dbg(&priv->pdev->dev, "LOOK FOR PHY: port=0x%x\n", i);
-		phy_id = bdx_mdio_read(priv, 1, i, 0x0002);	/* PHY_ID_HIGH */
-		phy_id &= 0xFFFF;
-		if (phy_id != 0xFFFF && phy_id != 0) {
-			rVal = i;
+		phy_id_hi = bdx_mdio_read(priv, 1, i, phy_id_addr_hi);
+		if (phy_id_hi != 0xFFFF && phy_id_hi != 0) {
+			phy_id_lo = bdx_mdio_read(priv, 1, i, phy_id_addr_lo);
 			break;
 		}
-	}
-	if (rVal == -1) {
-		dev_err(&priv->pdev->dev, "PHY not found\n");
+		msleep(10);
 	}
 
-	return rVal;
+	if (i == 32) {
+		dev_err(&priv->pdev->dev, "no PHY found\n");
+		return 0;
+	}
 
+	priv->phy_mdio_port = i;
+
+	return phy_id_hi << 16 | phy_id_lo;
 }
 
-static int __init bdx_mdio_phy_search(struct bdx_priv *priv,
-				      void __iomem *regs, int *port_t,
-				      unsigned short *phy_t)
+static enum PHY_TYPE __init bdx_phy_register(struct bdx_priv *priv,
+					     u32 phy_id, char **desc)
 {
-	int i, phy_id;
-	char *s;
+	switch (phy_id) {
 
-	if (bdx_force_no_phy_mode) {
-		dev_err(&priv->pdev->dev, "Forced NO PHY mode\n");
-		i = 0;
-	} else {
-		i = bdx_mdio_look_for_phy(priv, *port_t);
-		if (i >= 0) {	/* PHY  found */
-			*port_t = i;
-			phy_id = bdx_mdio_read(priv, 1, *port_t, 0x0002);	/* PHY_ID_HI */
-			i = phy_id << 16;
-			phy_id = bdx_mdio_read(priv, 1, *port_t, 0x0003);	/* PHY_ID_LOW */
-			phy_id &= 0xFFFF;
-			i |= phy_id;
-		}
-	}
-	switch (i) {
-
-#ifdef PHY_QT2025
 	case 0x0043A400:
-		*phy_t = PHY_TYPE_QT2025;
-		s = "QT2025 10Gbps SFP+";
-		*phy_t = QT2025_register(priv);
+		*desc = "QT2025 10Gbps SFP+";
+#ifdef PHY_QT2025
+		return QT2025_register(priv);
+#else
 		break;
 #endif
 
-#ifdef PHY_MV88X3120
 	case 0x01405896:
-		s = "MV88X3120 10Gbps 10GBase-T";
-		*phy_t = MV88X3120_register(priv);
+		*desc = "MV88X3120 10Gbps 10GBase-T";
+#ifdef PHY_MV88X3120
+		return MV88X3120_register(priv);
+#else
 		break;
-
 #endif
 
-#if (defined PHY_MV88X3310) || (defined PHY_MV88E2010)
 	case 0x02b09aa:
 	case 0x02b09ab:
 		if (priv->deviceId == 0x4027) {
-			s = (i ==
-			     0x02b09aa) ? "MV88X3310 (A0) 10Gbps 10GBase-T" :
-			    "MV88X3310 (A1) 10Gbps 10GBase-T";
-			*phy_t = MV88X3310_register(priv);
+			*desc = (phy_id ==
+				 0x02b09aa) ? "MV88X3310 (A0) 10Gbps 10GBase-T"
+			    : "MV88X3310 (A1) 10Gbps 10GBase-T";
+#ifdef PHY_MV88X3310
+			return MV88X3310_register(priv);
+#else
+			break;
+#endif
 		} else if (priv->deviceId == 0x4527) {
-			s = (i ==
-			     0x02b09aa) ? "MV88E2010 (A0) 5Gbps 5GBase-T" :
+			*desc = (phy_id ==
+				 0x02b09aa) ? "MV88E2010 (A0) 5Gbps 5GBase-T" :
 			    "MV88E2010 (A1) 5Gbps 5GBase-T";
-			*phy_t = MV88X3310_register(priv);
+#ifdef PHY_MV88E2010
+			return MV88X3310_register(priv);
+#else
+			break;
+#endif
 		} else if (priv->deviceId == 0x4010) {
-			s = "Dummy CX4";
-			*phy_t = CX4_register(priv);
+			/* FIXME: How is it possible to read a MV88 ID over mdio and get here? */
+			*desc = "Dummy CX4";
+			return CX4_register(priv);
 		} else {
-			s = "";
-			dev_err(&priv->pdev->dev,
-				"Unsupported device id/phy id 0x%x/0x%x !\n",
-				priv->pdev->device, i);
+			*desc = "";
+			break;
 		}
-		break;
 
-#endif
-
-#ifdef PHY_TLK10232
 	case 0x40005100:
-		s = "TLK10232 10Gbps SFP+";
-		*phy_t = TLK10232_register(priv);
+		*desc = "TLK10232 10Gbps SFP+";
+#ifdef PHY_TLK10232
+		return TLK10232_register(priv);
+#else
 		break;
 #endif
 
-#ifdef PHY_AQR105
 	case 0x03A1B462:	/*AQR105 B0 */
 	case 0x03A1B463:	/*AQR105 B1 */
 	case 0x03A1B4A3:	/*AQR105 B1 */
-
-		s = "AQR105 10Gbps 10GBase-T";
-		*phy_t = AQR105_register(priv);
+		*desc = "AQR105 10Gbps 10GBase-T";
+#ifdef PHY_AQR105
+		return AQR105_register(priv);
+#else
 		break;
 #endif
 
 	default:
-		*phy_t = PHY_TYPE_CX4;
-		s = "Native 10Gbps CX4";
-		*phy_t = CX4_register(priv);
-		break;
-
+		*desc = "Native 10Gbps CX4";
+		return CX4_register(priv);
 	}
 
-	bdx_mdio_set_speed(priv->pBdxRegs, priv->phy_ops.mdio_speed);
-	dev_info(&priv->pdev->dev, "PHY detected on port %u ID=%X - %s\n",
-		 *port_t, i, s);
-
-	return (PHY_TYPE_NA == *phy_t) ? -1 : 0;
-
+	dev_info(&priv->pdev->dev, "%s PHY not supported\n", *desc);
+	return PHY_TYPE_NA;
 }
 
-static int __init bdx_mdio_reset(struct bdx_priv *priv, int port,
-				 unsigned short phy)
+static enum PHY_TYPE bdx_phy_init(struct bdx_priv *priv)
 {
-	void __iomem *regs = priv->pBdxRegs;
-	int port_t = ++port;
-	unsigned short phy_t = phy;
+	struct pci_dev *pdev = priv->pdev;
+	enum PHY_TYPE phy_type;
+	u32 phy_id;
+	char *desc;
 
-	priv->phy_mdio_port = 0xFF;
-	if (-1 == bdx_mdio_phy_search(priv, regs, &port_t, &phy_t)) {
-		return -1;
+	phy_type =
+	    bdx_get_phy_by_id(pdev->vendor, pdev->device,
+			      pdev->subsystem_device);
+
+	if (phy_type == PHY_TYPE_NA)
+		return PHY_TYPE_NA;	/* NIC definition has no PHY. */
+
+	bdx_mdio_set_speed(priv->pBdxRegs, MDIO_SPEED_1MHZ);
+
+	phy_id = bdx_mdio_scan_phy_id(priv);	/* set phy_mdio_port */
+
+	if (!priv->phy_mdio_port)
+		return PHY_TYPE_NA;	/* No PHY detected on MDIO bus. */
+
+	/* register the PHY-specific callbacks */
+	priv->phy_type = bdx_phy_register(priv, phy_id, &desc);
+
+	if (priv->phy_type == PHY_TYPE_NA) {
+		dev_info(&priv->pdev->dev, "Unsupported PHY ID=%X", phy_id);
+		return PHY_TYPE_NA;
 	}
-	if (phy != phy_t) {
-		dev_err(&priv->pdev->dev, "PHY type by svid %u found %u\n", phy,
-			phy_t);
-		phy = phy_t;
-	}
-	port = port_t;
-	priv->phy_mdio_port = port;
-	priv->phy_type = phy;
+	if (phy_type != priv->phy_type)
+		dev_info(&priv->pdev->dev,
+			 "SVID PHY type %u; MDIO scan Found %u\n", phy_type,
+			 priv->phy_type);
 
-	return priv->phy_ops.mdio_reset(priv, port, phy);
+	dev_info(&priv->pdev->dev, "PHY detected ID=%X - %s\n", phy_id, desc);
 
+	bdx_mdio_set_speed(priv->pBdxRegs, priv->phy_ops.mdio_speed);
+
+	if (priv->phy_ops.mdio_reset(priv, 1, priv->phy_type))
+		return PHY_TYPE_NA;
+
+	return phy_type;
 }
 
 /*************************************************************************
@@ -2859,12 +2851,7 @@ static const struct net_device_ops bdx_netdev_ops = {
 	.ndo_vlan_rx_kill_vid = bdx_vlan_rx_kill_vid,
 };
 
-static int bdx_get_ports_by_id(int vendor, int device)
-{
-	return 1;
-}
-
-static int bdx_get_phy_by_id(int vendor, int device, int subsystem, int port)
+static int bdx_get_phy_by_id(int vendor, int device, int subsystem)
 {
 	int i = 0;
 	for (; bdx_dev_tbl[i].vid; i++) {
@@ -2872,11 +2859,9 @@ static int bdx_get_phy_by_id(int vendor, int device, int subsystem, int port)
 		    && (bdx_dev_tbl[i].pid == device)
 		    && (bdx_dev_tbl[i].subdev == subsystem)
 		    )
-			return (port ==
-				0) ? bdx_dev_tbl[i].phya : bdx_dev_tbl[i].phyb;
+			return bdx_dev_tbl[i].phy_type;
 	}
 	return 0;
-
 }
 
 static void __init bdx_init_net_device(struct net_device *ndev,
@@ -2951,7 +2936,7 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	resource_size_t pciaddr;
 	u32 regionSize;
 	struct pci_nic *nic;
-	int phy;
+	enum PHY_TYPE phy_type;
 	unsigned int nvec = 1;
 
 	nic = vmalloc(sizeof(*nic));
@@ -3029,20 +3014,25 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	priv->deviceId = pdev->device;
 
 	if ((readl(nic->regs + FPGA_VER) & 0xFFF) == 308) {
-		dev_dbg(&ndev->dev, "HW statistics not supported\n");
+		dev_info(&ndev->dev, "HW statistics not supported\n");
 		priv->stats_flag = 0;
 	} else {
 		priv->stats_flag = 1;
 	}
+
 	/*Init PHY */
 	priv->subsystem_vendor = priv->pdev->subsystem_vendor;
 	priv->subsystem_device = priv->pdev->subsystem_device;
-	phy =
-	    bdx_get_phy_by_id(pdev->vendor, pdev->device,
-			      pdev->subsystem_device, 0);
-	if (bdx_mdio_reset(priv, 0, phy) == -1) {
-		err = -ENODEV;
-		goto err_out_iomap;
+	if (bdx_force_no_phy_mode) {
+		dev_err(&priv->pdev->dev, "Forced NO PHY mode\n");
+		phy_type = PHY_TYPE_NA;
+	} else {
+		phy_type = bdx_phy_init(priv);
+		if (phy_type == PHY_TYPE_NA) {
+			dev_err(&pdev->dev, "PHY init failed");
+			err = -ENODEV;
+			goto err_out_irq_vectors;
+		}
 	}
 
 	/* Initialize fifo sizes. */
@@ -3060,13 +3050,11 @@ static int __init bdx_probe(struct pci_dev *pdev,
 	priv->isr_mask =
 	    IR_RX_FREE_0 | IR_LNKCHG0 | IR_PSE | IR_TMR0 | IR_RX_DESC_0 |
 	    IR_TX_FREE_0 | IR_TMR1;
-	switch (phy) {
-	case PHY_TYPE_MV88X3120:
-	case PHY_TYPE_MV88X3310:
-	case PHY_TYPE_MV88E2010:
-	case PHY_TYPE_AQR105:
+
+	if (phy_type == PHY_TYPE_MV88X3120 || phy_type == PHY_TYPE_MV88X3310
+	    || phy_type == PHY_TYPE_MV88E2010 || phy_type == PHY_TYPE_AQR105)
 		priv->isr_mask |= IR_LNKCHG1;
-	}
+
 	netif_napi_add(ndev, &priv->napi, bdx_poll);
 
 	if (bdx_read_mac(priv)) {

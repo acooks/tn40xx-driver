@@ -93,13 +93,9 @@ struct bdx_device_descr {
 	short vid;
 	short pid;
 	short subdev;
-	short msi;
-	short ports;
-	short phya;
-	short phyb;
+	enum PHY_TYPE phy_type;
 	char *name;
 };
-
 
 /* RX copy break size */
 #define BDX_COPYBREAK     	257
@@ -784,7 +780,6 @@ u32 bdx_mdio_get(struct bdx_priv *priv);
 int bdx_mdio_write(struct bdx_priv *priv, int device, int port, u16 addr,
 		   u16 data);
 u16 bdx_mdio_read(struct bdx_priv *priv, int device, int port, u16 addr);
-int bdx_mdio_look_for_phy(struct bdx_priv *priv, int port);
 int bdx_speed_set(struct bdx_priv *priv, u32 speed);
 void bdx_speed_changed(struct bdx_priv *priv, u32 speed);
 
