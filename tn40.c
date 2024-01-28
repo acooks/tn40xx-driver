@@ -1663,7 +1663,6 @@ static int bdx_rx_alloc_pages(struct bdx_priv *priv)
 			if (bdx_rx_alloc_page(priv, bdx_page) == 0) {
 				list_add_tail(&bdx_page->free,
 					      &priv->rx_page_table.free_list);
-				bdx_page->status = 'F';
 				priv->rx_page_table.nFrees += 1;
 			} else {
 				netdev_err(priv->ndev,
@@ -1744,7 +1743,6 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 				rPage = ((struct bdx_page *)pos);
 				netdev_dbg(priv->ndev, "nLoops %d ", nLoops);
 				list_del(pos);
-				rPage->status = ' ';
 				priv->rx_page_table.nFrees -= 1;
 				bdx_rx_ref_page(rPage);
 				break;
@@ -1766,7 +1764,6 @@ static struct bdx_page *bdx_rx_get_page(struct bdx_priv *priv)
 			if (bdx_rx_alloc_page(priv, firstPage) == 0) {
 				rPage = firstPage;
 				list_del((struct list_head *)rPage);
-				rPage->status = ' ';
 				priv->rx_page_table.nFrees -= 1;
 				bdx_rx_ref_page(rPage);
 			} else {
@@ -1790,7 +1787,6 @@ static void bdx_rx_reuse_page(struct bdx_priv *priv, struct rx_map *dm)
 		dm->bdx_page->reuse_tries = 0;
 		list_add_tail(&dm->bdx_page->free,
 			      &priv->rx_page_table.free_list);
-		dm->bdx_page->status = 'F';
 		priv->rx_page_table.nFrees += 1;
 	}
 

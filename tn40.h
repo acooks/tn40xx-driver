@@ -194,7 +194,6 @@ struct bdx_page {
 	int ref_count;
 	int reuse_tries;
 	int page_index;
-	char status;
 	struct page *page;
 	u64 dma;
 };
