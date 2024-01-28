@@ -36,7 +36,7 @@
 #include <linux/version.h>
 #include <asm/byteorder.h>
 
-#define BDX_DRV_VERSION   	"linux-6.6.y-1"
+#define BDX_DRV_VERSION   	"linux-6.7.y-1"
 #define DRIVER_AUTHOR     	"Tehuti networks"
 #define BDX_DRV_DESC      	"Tehuti Network Driver from https://github.com/acooks/tn40xx-driver"
 #define BDX_NIC_NAME      	"tn40xx"

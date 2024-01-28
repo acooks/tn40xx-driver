@@ -49,6 +49,10 @@ will output something like this:
    - 4527, 3015 "TN9710Q 5GBase-T/NBASE-T Ethernet Adapter"
 
 
+# Problematic Kernel versions
+
+Occasionally people ask for help with old kernels, or kernels based on Enterprise Linux distributions. Unfortunately, this is something that is difficult for me (Andrew) to help with. I haven't got the time, and I believe that Enterprise Linux vendors should be providing this support, and be paid for it. Please seek help from the vendor of the Enterprise Linux distribution, or consider whether your needs and interests may be better aligned with an up-to-date community-supported distribution.
+
 # Install
 
 While upstreaming is the ultimate goal of this project, some systems already rely on this driver. For such systems, DKMS provides a convenient way to install and update the driver, [See DKMS instructions](docs/dkms.md).
@@ -56,10 +60,11 @@ While upstreaming is the ultimate goal of this project, some systems already rel
 # Branches
 
 This repo contains several long-lived branches. You may have to look around for support for the kernel version and PHY that you have.
-- `release/linux-6.6.y-1` -> Linux > 6.6.x
-- `release/tn40xx-006` -> Linux > 5.15.x
-- `release/tn40xx-004` -> Linux > 5.4
-- `release/tn40xx-003` -> Linux <= 5.4
+- `release/linux-6.7.y-1` --> 6.7.x <= Linux
+- `release/linux-6.6.y-1` --> 6.6.x <= Linux < 6.8
+- `release/tn40xx-006`    --> 5.15.x <= Linux < 6.8
+- `release/tn40xx-004`    --> 5.4 < Linux < 5.15
+- `release/tn40xx-003`    --> Linux <= 5.4
 - `vendor-drop/v0.3.6.17`
 
 More detail on branching in [described in the documentation](docs/branches.md).
