@@ -3632,7 +3632,6 @@ static void __exit bdx_remove(struct pci_dev *pdev)
 	pr_info("Device removed\n");
 }
 
-
 #define PCI_PMCR 0x7C
 
 static int bdx_suspend(struct device *dev)
@@ -3701,7 +3700,6 @@ __refdata static struct pci_driver bdx_pci_driver = {
 	.shutdown = __exit_p(bdx_remove),
 	.driver.pm = &bdx_pm_ops,
 };
-
 
 static void __init bdx_scan_pci(void)
 {
