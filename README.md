@@ -69,6 +69,21 @@ This repo contains several long-lived branches. You may have to look around for 
 
 More detail on branching in [described in the documentation](docs/branches.md).
 
+## Example Driver Install (for a Tehuti Networks TN9710P)
+1.  Confirm what your Device ID using this command `lspci -nn | grep Ethernet`.  You'll see two numbers in brackets at the end of the line, e.g. `[1fc9:4027]`.  The Device ID is the second number.
+
+2.  Determine your kernel version with `uname -a`.
+3.  Make sure you have your kernel headers installed.  This varies from system to system, but on Ubuntu the command is something along the lines of `apt install linux-headers-...`.
+4.  Determine which branch you need (see the next section).  For example, with Linux 6.5.13, you would use `release/tn40xx-006`.
+5.  Clone this repo into `/usr/src/tn40xx` with the following command: `git clone -b [CORRECT BRANCH] https://github.com/acooks/tn40xx-driver.git /usr/src/tn40xx`
+6.  If you have a problematic device, such as the TN9710P (Device ID 4027), you'll need to manually find and install the HDR file for the firmware.  More discussion as to why this is [here](https://github.com/acooks/tn40xx-driver/issues/3).  There may be helpful links to aid in your quest for the file there.
+7.  Once you have your HDR file (for example x3310fw_0_3_4_0_9445.hdr), save it to your repo in `/usr/src/tn40xx`
+8.  Check to make sure you have `xxd` installed with command `xxd -v`.  If it's not present, install it (e.g. `apt install xxd`).
+9.  Run the `mvidtoh.sh` (found in the root directory of the repo) with this command `bash mvidtoh.sh [Name of HDR file] [Model] [.h file]`.  For example, `bash mvidtoh.sh x3310fw_0_3_4_0_9445.hdr MV88X3310 MV88X3310_phy.h`
+10.  From here, you can run `make` and `make install`
+11.  Load the module with `insmod tn40xx`
+12.  To see if the module loaded correctly, run `dmesg`.  You should have a message that says something along the lines of "PHY detected on port...".  If you don't see a message like that or it says something along the lines of "PHY failed", then it's very likely you didn't build the correct driver.  Try to figure out which is the right driver for you and repeat.
+
 # Thanks
 
 To the following people who have contributed to this project - thank you!
